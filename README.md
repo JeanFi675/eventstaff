@@ -6,6 +6,8 @@ Le titre et l'adresse de l'évènement se configurent **depuis l'espace admin** 
 
 > Frontend statique (Vite + Alpine.js + Tailwind) + backend Supabase (PostgreSQL, Auth, RLS, Edge Functions). Hébergeable gratuitement sur GitHub Pages, Netlify, Vercel, etc.
 
+> 🚀 **Pas développeur ?** Suis le **[Guide d'installation complet (A à Z)](GUIDE-INSTALLATION.md)** — de la création des comptes GitHub/Supabase jusqu'à ta première connexion en admin, sans écrire une ligne de code.
+
 ---
 
 ## Stack
@@ -72,7 +74,16 @@ npm run dev        # http://localhost:5173
 
 ### 5. Créer le premier compte admin
 
-> 📌 **Tuto détaillé à venir.** En résumé : crée un utilisateur dans Supabase → Authentication, puis insère son profil dans la table `benevoles` avec `role = 'admin'` et `user_id` pointant sur l'utilisateur Auth. Une fois admin, tu crées tout le reste (évènement, postes, bénévoles…) depuis l'interface d'administration.
+Connecte-toi une fois via le code à 6 chiffres (ce qui crée ton compte Auth), puis exécute dans le **SQL Editor** de Supabase :
+
+```sql
+insert into public.benevoles (email, prenom, nom, telephone, role, user_id)
+select u.email, 'Prénom', 'Nom', 'INCONNU', 'admin', u.id
+from auth.users u
+where u.email = 'ton.email@exemple.com';
+```
+
+> 📌 Procédure détaillée (config Auth, modèle d'email avec `{{ .Token }}`, SMTP, secrets) : voir le **[Guide d'installation complet](GUIDE-INSTALLATION.md)**.
 
 ### 6. Construire ton évènement
 
