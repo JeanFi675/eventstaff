@@ -1,0 +1,35 @@
+body {
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+.brutal-card {
+  border: 3px solid black;
+  box-shadow: 5px 5px 0px black;
+  transition: all 0.2s;
+}
+
+.brutal-btn {
+  border: 2px solid black;
+  box-shadow: 3px 3px 0px black;
+  transition: all 0.1s;
+}
+
+.brutal-btn:active {
+  transform: translate(3px, 3px);
+  box-shadow: 0px 0px 0px black;
+}
+
+.brutal-input {
+  border: 2px solid black;
+  background: #fff;
+  box-shadow: 3px 3px 0px rgba(0, 0, 0, 0.1);
+}
+
+.bg-brutal-blue {
+  background-color: #a3e635;
+}
+
+/* Lime green for T-shirts */
+[x-cloak] {
+  display: none !important;
+}

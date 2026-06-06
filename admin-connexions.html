@@ -1,0 +1,466 @@
+<!doctype html>
+<html lang="fr">
+  <%- include('/src/partials/layout/head.html', { title: 'Admin Connexions - Appel aux Bénévoles' })
+  %>
+
+  <!-- Pas de x-init="init()" : Alpine appelle automatiquement la méthode init() du composant.
+       L'ajouter ici la déclencherait deux fois (double chargement des données). -->
+  <body class="bg-brutal-ice min-h-screen" x-data="adminConnexionsApp()">
+    <%- include('/src/partials/components/toast.html') %>
+
+    <!-- Header -->
+    <header class="bg-brutal-black text-brutal-white py-6 mb-6 border-b-4 border-brutal-black">
+      <div class="container mx-auto px-4">
+        <div class="flex justify-between items-center">
+          <div>
+            <h1 class="text-3xl font-black tracking-tight flex items-center gap-2">
+              <span>🔌 DIAGNOSTIC CONNEXIONS</span>
+            </h1>
+            <p class="text-xl font-body mt-2">Utilisateurs sans profil bénévole</p>
+          </div>
+          <a
+            href="admin.html"
+            class="brutal-btn bg-brutal-ice text-brutal-black px-4 py-2 shadow-brutal-sm"
+          >
+            ← Retour
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <main class="container mx-auto px-4 pb-12">
+      <!-- Access Denied -->
+      <div
+        x-show="!isAdmin && !loading"
+        class="brutal-card bg-brutal-white p-8 max-w-2xl mx-auto text-center"
+        x-cloak
+      >
+        <h2 class="text-3xl font-black mb-4">🚫 Accès refusé</h2>
+        <p class="text-lg font-bold mb-6">Vous n'avez pas le rôle d'administrateur.</p>
+        <a href="index.html" class="brutal-btn bg-brutal-ice px-6 py-3 shadow-brutal inline-block">
+          Retour à l'accueil
+        </a>
+      </div>
+
+      <!-- Loading -->
+      <div
+        x-show="loading"
+        class="brutal-card bg-brutal-white p-8 max-w-2xl mx-auto text-center"
+        x-cloak
+      >
+        <p class="text-2xl font-black">⏳ Chargement...</p>
+      </div>
+
+      <!-- Admin Interface -->
+      <div x-show="isAdmin && !loading" x-cloak>
+        <section class="brutal-card bg-brutal-white p-6 border-4 border-brutal-black shadow-brutal">
+          <div
+            class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"
+          >
+            <h2 class="text-2xl font-black uppercase flex items-center gap-2">
+              🕵️ Liste des comptes orphelins (<span x-text="users.length"></span>)
+            </h2>
+            <button
+              @click="copyEmails()"
+              x-show="users.length > 0"
+              class="brutal-btn py-2 px-4 shadow-brutal-sm border-2 border-brutal-black font-black uppercase whitespace-nowrap"
+              :class="someChecked ? 'bg-green-400' : 'bg-yellow-400'"
+            >
+              📋 Copier
+              <span
+                x-text="someChecked ? selectedIds.length + ' email(s) sélectionné(s)' : 'tous les emails'"
+              ></span>
+            </button>
+          </div>
+
+          <p class="mb-6 font-bold text-gray-700">
+            Ces utilisateurs se sont connectés au moins une fois (via lien magique ou création de
+            compte), mais aucun profil de bénévole n'est associé à leur adresse email. Ils ne
+            peuvent donc pas s'inscrire aux plannings et voient une page vide.
+          </p>
+
+          <!-- Mobile List -->
+          <div class="md:hidden space-y-4">
+            <!-- Tri mobile -->
+            <div class="flex gap-2 mb-2">
+              <button
+                @click="sortBy('email')"
+                class="brutal-btn text-sm py-1 px-3 border-2 border-brutal-black font-black"
+                :class="sortField === 'email' ? 'bg-brutal-black text-brutal-white' : 'bg-brutal-white'"
+              >
+                Email <span x-text="sortIcon('email')"></span>
+              </button>
+              <button
+                @click="sortBy('created_at')"
+                class="brutal-btn text-sm py-1 px-3 border-2 border-brutal-black font-black"
+                :class="sortField === 'created_at' ? 'bg-brutal-black text-brutal-white' : 'bg-brutal-white'"
+              >
+                Date <span x-text="sortIcon('created_at')"></span>
+              </button>
+            </div>
+            <template x-for="user in sortedUsers" :key="user.id">
+              <div
+                class="border-2 border-brutal-black p-4 shadow-brutal-sm bg-brutal-white relative"
+                :class="selectedIds.includes(user.id) ? 'bg-yellow-50 border-yellow-500' : ''"
+              >
+                <label class="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    class="mt-1 w-5 h-5 accent-yellow-400 border-2 border-brutal-black cursor-pointer flex-shrink-0"
+                    :value="user.id"
+                    x-model="selectedIds"
+                  />
+                  <div class="flex-1">
+                    <div class="font-black text-lg break-all" x-text="user.email"></div>
+                    <div class="font-bold text-sm text-gray-500 mt-2">
+                      Inscrit le:
+                      <span x-text="formatDate(user.created_at)"></span>
+                    </div>
+                    <div class="mt-2 flex items-center gap-2 flex-wrap">
+                      <button
+                        @click.stop="copyEmail(user.email)"
+                        class="brutal-btn text-xs py-1 px-3 border-2 border-brutal-black font-black bg-blue-300 hover:bg-blue-200"
+                      >
+                        📋 Copier le mail
+                      </button>
+                    </div>
+                    <div class="mt-2 flex items-center gap-1 flex-wrap">
+                      <input
+                        type="tel"
+                        placeholder="06 12 34 56 78"
+                        x-model="editingPhones[user.id]"
+                        @keydown.enter.stop="saveOrphelinPhone(user)"
+                        class="border-2 border-brutal-black px-2 py-1 text-xs font-mono w-36"
+                      />
+                      <button
+                        @click.stop="saveOrphelinPhone(user)"
+                        :disabled="savingPhoneIds.includes(user.id)"
+                        class="brutal-btn text-xs py-1 px-2 border-2 border-brutal-black font-black"
+                        :class="savingPhoneIds.includes(user.id) ? 'bg-gray-300 cursor-not-allowed' : 'bg-blue-300 hover:bg-blue-200'"
+                        title="Enregistrer le téléphone"
+                      >
+                        <span x-show="!savingPhoneIds.includes(user.id)">💾</span>
+                        <span x-show="savingPhoneIds.includes(user.id)">⏳</span>
+                      </button>
+                      <a
+                        x-show="user.telephone"
+                        :href="formatWhatsAppUrl(user.telephone)"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="brutal-btn text-xs py-1 px-2 border-2 border-brutal-black font-black bg-green-400 hover:bg-green-300"
+                        @click.stop
+                        title="Contacter par WhatsApp"
+                        >📱</a
+                      >
+                    </div>
+                  </div>
+                </label>
+              </div>
+            </template>
+            <div x-show="users.length === 0" class="text-center py-8">
+              <p class="font-bold text-gray-500 italic">
+                Aucun compte orphelin détecté. Tout fonctionne bien ! 🎉
+              </p>
+            </div>
+          </div>
+
+          <!-- Desktop Table -->
+          <div class="hidden md:block overflow-x-auto border-4 border-brutal-black shadow-brutal">
+            <table class="w-full text-left bg-white border-collapse">
+              <thead>
+                <tr class="bg-brutal-black text-brutal-white uppercase text-sm">
+                  <th class="p-3 border-r-2 border-white w-10">
+                    <input
+                      type="checkbox"
+                      class="w-4 h-4 accent-yellow-400 cursor-pointer"
+                      :checked="allChecked"
+                      @change="toggleAll($event.target.checked)"
+                      title="Tout sélectionner"
+                    />
+                  </th>
+                  <th
+                    class="p-3 border-r-2 border-white cursor-pointer select-none hover:bg-gray-700"
+                    @click="sortBy('email')"
+                  >
+                    Email (Compte de connexion) <span x-text="sortIcon('email')"></span>
+                  </th>
+                  <th
+                    class="p-3 border-r-2 border-white cursor-pointer select-none hover:bg-gray-700"
+                    @click="sortBy('created_at')"
+                  >
+                    Date de création du compte <span x-text="sortIcon('created_at')"></span>
+                  </th>
+                  <th class="p-3 border-white select-none">Contact</th>
+                </tr>
+              </thead>
+              <tbody>
+                <template x-for="user in sortedUsers" :key="user.id">
+                  <tr
+                    class="border-b-4 border-brutal-black hover:bg-gray-100 transition-colors cursor-pointer"
+                    :class="selectedIds.includes(user.id) ? 'bg-yellow-50' : ''"
+                    @click="selectedIds.includes(user.id) ? selectedIds = selectedIds.filter(id => id !== user.id) : selectedIds.push(user.id)"
+                  >
+                    <td class="p-3 border-r-4 border-brutal-black" @click.stop>
+                      <input
+                        type="checkbox"
+                        class="w-4 h-4 accent-yellow-400 cursor-pointer"
+                        :value="user.id"
+                        x-model="selectedIds"
+                      />
+                    </td>
+                    <td
+                      class="p-3 font-bold border-r-4 border-brutal-black font-mono"
+                      x-text="user.email"
+                    ></td>
+                    <td
+                      class="p-3 font-bold text-gray-700 border-r-4 border-brutal-black"
+                      x-text="formatDate(user.created_at)"
+                    ></td>
+                    <td class="p-3" @click.stop>
+                      <div class="flex flex-col gap-1">
+                        <button
+                          @click="copyEmail(user.email)"
+                          class="brutal-btn text-xs py-1 px-3 border-2 border-brutal-black font-black whitespace-nowrap bg-blue-300 hover:bg-blue-200"
+                        >
+                          📋 Copier le mail
+                        </button>
+                        <div class="flex items-center gap-1 mt-1">
+                          <input
+                            type="tel"
+                            placeholder="06 12 34 56 78"
+                            x-model="editingPhones[user.id]"
+                            @keydown.enter="saveOrphelinPhone(user)"
+                            class="border-2 border-brutal-black px-2 py-1 text-xs font-mono w-32"
+                          />
+                          <button
+                            @click="saveOrphelinPhone(user)"
+                            :disabled="savingPhoneIds.includes(user.id)"
+                            class="brutal-btn text-xs py-1 px-2 border-2 border-brutal-black font-black"
+                            :class="savingPhoneIds.includes(user.id) ? 'bg-gray-300 cursor-not-allowed' : 'bg-blue-300 hover:bg-blue-200'"
+                            title="Enregistrer le téléphone"
+                          >
+                            <span x-show="!savingPhoneIds.includes(user.id)">💾</span>
+                            <span x-show="savingPhoneIds.includes(user.id)">⏳</span>
+                          </button>
+                          <a
+                            x-show="user.telephone"
+                            :href="formatWhatsAppUrl(user.telephone)"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="brutal-btn text-xs py-1 px-2 border-2 border-brutal-black font-black bg-green-400 hover:bg-green-300"
+                            title="Contacter par WhatsApp"
+                            >📱</a
+                          >
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                </template>
+                <tr x-show="users.length === 0">
+                  <td colspan="4" class="p-6 text-center font-bold text-gray-500 italic">
+                    Aucun compte orphelin détecté. Tout fonctionne bien ! 🎉
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Tableau Bénévoles (Sans Inscr.) -->
+        <section
+          class="brutal-card bg-brutal-white p-6 border-4 border-brutal-black shadow-brutal mt-8"
+        >
+          <div
+            class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"
+          >
+            <h2 class="text-2xl font-black uppercase flex items-center gap-2">
+              ⏳ Bénévoles (Sans inscr.) (<span x-text="benevolesSansInscr.length"></span>)
+            </h2>
+            <button
+              @click="copyBenevolesEmails()"
+              x-show="benevolesSansInscr.length > 0"
+              class="brutal-btn py-2 px-4 shadow-brutal-sm border-2 border-brutal-black font-black uppercase whitespace-nowrap"
+              :class="someBenevolesChecked ? 'bg-green-400' : 'bg-yellow-400'"
+            >
+              📋 Copier
+              <span
+                x-text="someBenevolesChecked ? selectedBenevolesIds.length + ' email(s) sélectionné(s)' : 'tous les emails'"
+              ></span>
+            </button>
+          </div>
+
+          <p class="mb-6 font-bold text-gray-700">
+            Ces personnes ont un compte bénévole valide mais ne se sont inscrites à aucun poste pour
+            l'instant.
+          </p>
+
+          <!-- Mobile List -->
+          <div class="md:hidden space-y-4">
+            <!-- Tri mobile -->
+            <div class="flex gap-2 mb-2">
+              <button
+                @click="sortByBenevoles('email')"
+                class="brutal-btn text-sm py-1 px-3 border-2 border-brutal-black font-black"
+                :class="sortFieldBenevoles === 'email' ? 'bg-brutal-black text-brutal-white' : 'bg-brutal-white'"
+              >
+                Email <span x-text="sortIconBenevoles('email')"></span>
+              </button>
+              <button
+                @click="sortByBenevoles('updated_at')"
+                class="brutal-btn text-sm py-1 px-3 border-2 border-brutal-black font-black"
+                :class="sortFieldBenevoles === 'updated_at' ? 'bg-brutal-black text-brutal-white' : 'bg-brutal-white'"
+              >
+                Mis à jour <span x-text="sortIconBenevoles('updated_at')"></span>
+              </button>
+            </div>
+            <template x-for="user in sortedBenevoles" :key="user.id">
+              <div
+                class="border-2 border-brutal-black p-4 shadow-brutal-sm bg-brutal-white relative"
+                :class="selectedBenevolesIds.includes(user.id) ? 'bg-yellow-50 border-yellow-500' : ''"
+              >
+                <label class="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    class="mt-1 w-5 h-5 accent-yellow-400 border-2 border-brutal-black cursor-pointer flex-shrink-0"
+                    :value="user.id"
+                    x-model="selectedBenevolesIds"
+                  />
+                  <div class="flex-1">
+                    <div
+                      class="font-black text-lg break-all"
+                      x-text="user.email || 'Sans email'"
+                    ></div>
+                    <div class="font-bold text-sm text-gray-500 mt-2">
+                      Nom: <span x-text="user.prenom + ' ' + user.nom"></span>
+                    </div>
+                    <div class="font-bold text-sm text-gray-400 mt-1">
+                      Mis à jour: <span x-text="formatDate(user.updated_at)"></span>
+                    </div>
+                    <div class="mt-2 flex items-center gap-2 flex-wrap">
+                      <button
+                        @click.stop="copyEmail(user.email)"
+                        x-show="user.email"
+                        class="brutal-btn text-xs py-1 px-3 border-2 border-brutal-black font-black bg-blue-300 hover:bg-blue-200"
+                      >
+                        📋 Copier le mail
+                      </button>
+                      <a
+                        x-show="user.telephone"
+                        :href="formatWhatsAppUrl(user.telephone)"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="brutal-btn text-xs py-1 px-3 border-2 border-brutal-black font-black bg-green-400 hover:bg-green-300 whitespace-nowrap"
+                        @click.stop
+                        >📱 <span x-text="user.telephone"></span
+                      ></a>
+                    </div>
+                  </div>
+                </label>
+              </div>
+            </template>
+            <div x-show="benevolesSansInscr.length === 0" class="text-center py-8">
+              <p class="font-bold text-gray-500 italic">
+                Aucun bénévole sans inscription détecté. Tout fonctionne bien ! 🎉
+              </p>
+            </div>
+          </div>
+
+          <!-- Desktop Table -->
+          <div class="hidden md:block overflow-x-auto border-4 border-brutal-black shadow-brutal">
+            <table class="w-full text-left bg-white border-collapse">
+              <thead>
+                <tr class="bg-brutal-black text-brutal-white uppercase text-sm">
+                  <th class="p-3 border-r-2 border-white w-10">
+                    <input
+                      type="checkbox"
+                      class="w-4 h-4 accent-yellow-400 cursor-pointer"
+                      :checked="allBenevolesChecked"
+                      @change="toggleAllBenevoles($event.target.checked)"
+                      title="Tout sélectionner"
+                    />
+                  </th>
+                  <th
+                    class="p-3 border-r-2 border-white cursor-pointer select-none hover:bg-gray-700"
+                    @click="sortByBenevoles('email')"
+                  >
+                    Email (Compte bénévole) <span x-text="sortIconBenevoles('email')"></span>
+                  </th>
+                  <th
+                    class="p-3 border-r-2 border-white cursor-pointer select-none hover:bg-gray-700"
+                    @click="sortByBenevoles('nom')"
+                  >
+                    Identité
+                  </th>
+                  <th
+                    class="p-3 border-r-2 border-white cursor-pointer select-none hover:bg-gray-700"
+                    @click="sortByBenevoles('updated_at')"
+                  >
+                    Mis à jour <span x-text="sortIconBenevoles('updated_at')"></span>
+                  </th>
+                  <th class="p-3 border-white select-none">Contact</th>
+                </tr>
+              </thead>
+              <tbody>
+                <template x-for="user in sortedBenevoles" :key="user.id">
+                  <tr
+                    class="border-b-4 border-brutal-black hover:bg-gray-100 transition-colors cursor-pointer"
+                    :class="selectedBenevolesIds.includes(user.id) ? 'bg-yellow-50' : ''"
+                    @click="selectedBenevolesIds.includes(user.id) ? selectedBenevolesIds = selectedBenevolesIds.filter(id => id !== user.id) : selectedBenevolesIds.push(user.id)"
+                  >
+                    <td class="p-3 border-r-4 border-brutal-black" @click.stop>
+                      <input
+                        type="checkbox"
+                        class="w-4 h-4 accent-yellow-400 cursor-pointer"
+                        :value="user.id"
+                        x-model="selectedBenevolesIds"
+                      />
+                    </td>
+                    <td
+                      class="p-3 font-bold border-r-4 border-brutal-black font-mono"
+                      x-text="user.email || '-'"
+                    ></td>
+                    <td
+                      class="p-3 font-bold text-gray-700 border-r-4 border-brutal-black"
+                      x-text="user.prenom + ' ' + user.nom"
+                    ></td>
+                    <td
+                      class="p-3 font-bold text-gray-500 text-sm border-r-4 border-brutal-black"
+                      x-text="formatDate(user.updated_at)"
+                    ></td>
+                    <td class="p-3" @click.stop>
+                      <div class="flex flex-col gap-1">
+                        <button
+                          @click="copyEmail(user.email)"
+                          x-show="user.email"
+                          class="brutal-btn text-xs py-1 px-3 border-2 border-brutal-black font-black whitespace-nowrap bg-blue-300 hover:bg-blue-200"
+                        >
+                          📋 Copier le mail
+                        </button>
+                        <a
+                          x-show="user.telephone"
+                          :href="formatWhatsAppUrl(user.telephone)"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="brutal-btn text-xs py-1 px-3 border-2 border-brutal-black font-black bg-green-400 hover:bg-green-300 whitespace-nowrap text-center"
+                          >📱 <span x-text="user.telephone"></span
+                        ></a>
+                      </div>
+                    </td>
+                  </tr>
+                </template>
+                <tr x-show="benevolesSansInscr.length === 0">
+                  <td colspan="5" class="p-6 text-center font-bold text-gray-500 italic">
+                    Aucun bénévole sans inscription détecté. Tout fonctionne bien ! 🎉
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <!-- Main Application Logic -->
+    <script type="module" src="./src/js/admin-connexions.js"></script>
+  </body>
+</html>

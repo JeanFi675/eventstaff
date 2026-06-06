@@ -1,0 +1,315 @@
+<!-- Vue chrono : courbe de charge + Gantt groupé par titre + programme -->
+<div>
+  <!-- Tooltip Gantt -->
+  <div
+    x-show="tooltip.show"
+    x-cloak
+    class="fixed z-50 pointer-events-none bg-brutal-white border-4 border-brutal-black shadow-brutal p-3"
+    style="max-width: 280px"
+    :style="'top:' + (tooltip.y - 10) + 'px; left:' + (tooltip.x + 16) + 'px;'"
+  >
+    <div class="font-black text-sm" x-text="tooltip.titre"></div>
+    <div class="text-xs font-bold text-gray-500 mt-1">
+      <span x-text="tooltip.debutStr"></span
+      ><span x-show="tooltip.finStr"> – <span x-text="tooltip.finStr"></span></span>
+    </div>
+    <div class="text-xs mt-1 font-bold" x-show="tooltip.inscrits !== null">
+      Bénévoles : <span x-text="tooltip.inscrits"></span> /
+      <span x-text="tooltip.nb_min + '–' + tooltip.nb_max"></span>
+    </div>
+    <template x-if="tooltip.liste_benevoles && tooltip.liste_benevoles.length > 0">
+      <div class="text-xs mt-2 border-t-2 border-dashed border-brutal-black pt-2">
+        <span class="font-black">Inscrits :</span>
+        <div class="flex flex-wrap gap-1 mt-1">
+          <template x-for="(benevole, idx) in tooltip.liste_benevoles" :key="idx">
+            <span
+              class="px-1.5 py-0.5 bg-brutal-black text-brutal-white font-bold text-[10px] border border-brutal-black"
+              x-text="benevole"
+            ></span>
+          </template>
+        </div>
+      </div>
+    </template>
+    <div
+      class="text-xs text-gray-600 mt-2 italic leading-snug"
+      x-show="tooltip.description"
+      x-text="tooltip.description"
+    ></div>
+  </div>
+
+  <!-- En-tête -->
+  <div class="mb-6">
+    <h2 class="text-2xl font-black capitalize" x-text="formatDay(selectedDay)"></h2>
+  </div>
+
+  <!-- Résumé -->
+  <div class="grid grid-cols-2 gap-4 mb-6">
+    <div
+      class="brutal-card bg-brutal-white p-4 border-4 border-brutal-black shadow-brutal text-center"
+    >
+      <div class="text-3xl font-black" x-text="ganttGroups.length"></div>
+      <div class="font-bold text-sm uppercase mt-1">Types de postes</div>
+    </div>
+    <div
+      class="brutal-card bg-brutal-white p-4 border-4 border-brutal-black shadow-brutal text-center"
+    >
+      <div class="text-3xl font-black" x-text="maxLoad"></div>
+      <div class="font-bold text-sm uppercase mt-1">Bénévoles max simultanés</div>
+    </div>
+  </div>
+
+  <!-- Zone principale -->
+  <div class="border-4 border-brutal-black shadow-brutal bg-brutal-white overflow-x-auto">
+    <div style="min-width: 700px">
+      <!-- COURBE DE CHARGE avec marqueurs programme -->
+      <div class="p-4 border-b-4 border-brutal-black">
+        <div class="font-black text-sm uppercase mb-2">Charge bénévoles — nb_min / nb_max</div>
+        <!-- Légende -->
+        <div class="flex gap-4 mb-3 text-xs font-bold flex-wrap" style="padding-left: 138px">
+          <span class="flex items-center gap-1"
+            ><span class="inline-block w-3 h-2.5" style="background: #93c5fd"></span>max</span
+          >
+          <span class="flex items-center gap-1"
+            ><span class="inline-block w-3 h-2.5" style="background: #3b82f6"></span>min</span
+          >
+          <span class="flex items-center gap-1"
+            ><span
+              class="inline-block w-5 h-0 border-t-2 border-dashed"
+              style="border-color: #16a34a"
+            ></span
+            >inscrits</span
+          >
+          <span class="flex items-center gap-1"
+            ><span class="inline-block w-3 h-3 rounded-full" style="background: #f59e0b"></span
+            >programme</span
+          >
+        </div>
+        <!-- Axe Y (130px) + graphique (flex-1) — même structure que les lignes Gantt -->
+        <div class="flex gap-2">
+          <div class="flex-shrink-0 relative" style="width: 130px">
+            <template x-for="tick in svgYTicks" :key="'yt-' + tick.v">
+              <span
+                class="absolute right-1 text-xs font-bold text-gray-500"
+                :style="'top: ' + tick.topPct + '%; transform: translateY(-50%);'"
+                x-text="tick.v"
+              ></span>
+            </template>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div x-html="svgMarkup"></div>
+            <!-- Heures en HTML : même classes que l'axe Gantt, pas de scaling SVG -->
+            <div class="relative mt-0.5" style="height: 20px">
+              <template x-for="tick in hourTicks" :key="'cht-' + tick.h">
+                <span
+                  class="absolute text-xs font-bold text-gray-500"
+                  :style="'left:' + tick.pct + '%; transform: translateX(-50%);'"
+                  x-text="tick.label"
+                ></span>
+              </template>
+            </div>
+            <!-- Cercles programme en HTML : identiques au Gantt PROG. -->
+            <div x-show="programmeDuJour.length > 0" class="relative mt-1" style="height: 24px">
+              <template x-for="ev in programmeDuJour" :key="'cprog-' + ev.num">
+                <div
+                  class="absolute top-0 w-6 h-6 bg-amber-400 border-2 border-brutal-black text-brutal-black text-xs font-black flex items-center justify-center rounded-full cursor-pointer hover:opacity-85 shadow-sm transition-opacity"
+                  :style="'left:' + ev.xPct + '%; transform: translateX(-50%);'"
+                  @mouseenter="showProgramTooltip(ev, $event)"
+                  @mousemove="moveTooltip($event)"
+                  @mouseleave="hideTooltip()"
+                  x-text="ev.num"
+                ></div>
+              </template>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- GANTT groupé par titre -->
+      <div class="p-4">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-2 mb-4">
+          <div class="font-black text-sm uppercase">
+            Postes du jour
+            <span class="font-normal normal-case text-gray-500 text-xs ml-2"
+              >— groupés par type</span
+            >
+          </div>
+          <!-- Légende Jauge -->
+          <div
+            class="flex gap-3 text-xs font-bold bg-white px-3 py-2 border-2 border-brutal-black shadow-brutal-sm flex-wrap items-center"
+          >
+            <span class="flex items-center gap-1" title="Inscrits < Min"
+              ><span class="inline-block w-3 h-3 bg-red-100 border border-red-400"></span>&lt;
+              Min</span
+            >
+            <span class="flex items-center gap-1" title="Min ≤ Inscrits < Max"
+              ><span class="inline-block w-3 h-3 bg-yellow-100 border border-yellow-400"></span>≥
+              Min</span
+            >
+            <span class="flex items-center gap-1" title="Inscrits ≥ Max"
+              ><span class="inline-block w-3 h-3 bg-green-100 border border-green-400"></span
+              >Complet</span
+            >
+            <div class="w-px h-4 bg-gray-300 mx-1"></div>
+
+            <span
+              class="flex items-center gap-1"
+              title="La zone plus sombre représente le nombre d'inscrits"
+            >
+              <div class="flex w-4 h-3 border border-brutal-black">
+                <div class="w-1/2 h-full bg-gray-400"></div>
+                <div class="w-1/2 h-full bg-gray-100"></div>
+              </div>
+              Zone sombre = Inscrits
+            </span>
+            <span class="flex items-center gap-1">
+              <span class="inline-block w-[2px] h-3 bg-brutal-black"></span>Ligne Min
+            </span>
+
+            <div class="w-px h-4 bg-gray-300 mx-1"></div>
+            <span class="flex items-center gap-1"
+              ><span
+                class="inline-block w-3 h-3 rounded-full bg-amber-400 border border-brutal-black"
+              ></span
+              >Prog.</span
+            >
+          </div>
+        </div>
+        <div class="space-y-1">
+          <template x-for="group in ganttGroups" :key="'grp-' + group.titre">
+            <div class="flex items-center gap-2">
+              <div
+                class="text-xs font-bold text-gray-800 whitespace-nowrap flex-shrink-0 overflow-hidden text-ellipsis"
+                style="width: 130px; text-align: right"
+                :title="group.titre"
+                x-text="group.titre"
+              ></div>
+              <!-- Conteneur des barres : les lignes programme sont dedans (même référentiel %) -->
+              <div class="relative flex-1" style="height: 28px">
+                <!-- Lignes verticales programme (au-dessus des barres, pointer-events: none) -->
+                <template x-for="ev in programmeDuJour" :key="'vl-' + group.titre + '-' + ev.num">
+                  <div
+                    class="absolute top-0 bottom-0 pointer-events-none"
+                    :style="'left: calc(' + ev.xPct + '% - 1px); width: 2px; background: #f59e0b; opacity: 0.55; z-index: 10;'"
+                  ></div>
+                </template>
+                <!-- Barres du poste -->
+                <template x-for="bar in group.bars" :key="'bar-' + bar.id">
+                  <div
+                    class="absolute top-0 h-full rounded-sm flex items-center overflow-hidden cursor-pointer transition-opacity hover:opacity-75 border-2"
+                    :style="'left:' + bar.leftPct + '%; width:' + Math.max(bar.widthPct, 0.8) + '%;'"
+                    :class="bar.baseColor + ' ' + bar.borderColor"
+                    @mouseenter="showTooltip(bar, $event)"
+                    @mousemove="moveTooltip($event)"
+                    @mouseleave="hideTooltip()"
+                  >
+                    <!-- Remplissage (Inscrits) sur la largeur -->
+                    <div
+                      class="absolute top-0 left-0 h-full"
+                      :class="bar.fillColor"
+                      :style="'width: ' + Math.min(100, (bar.inscrits / Math.max(1, bar.nb_max)) * 100) + '%'"
+                      x-show="bar.nb_max > 0"
+                    ></div>
+
+                    <!-- Ligne verticale pour le Minimum -->
+                    <div
+                      class="absolute top-0 w-[2px] h-full bg-brutal-black opacity-50 z-10"
+                      :style="'left: calc(' + Math.min(100, (bar.nb_min / Math.max(1, bar.nb_max)) * 100) + '% - 2px);'"
+                      x-show="bar.nb_max > 0 && bar.nb_min > 0"
+                    ></div>
+
+                    <!-- Texte Heures -->
+                    <span
+                      class="font-bold px-1 truncate z-20 text-brutal-black relative"
+                      style="font-size: 10px"
+                      x-text="bar.debutStr + '–' + bar.finStr"
+                    ></span>
+                  </div>
+                </template>
+              </div>
+            </div>
+          </template>
+        </div>
+
+        <!-- Axe horaire -->
+        <div class="flex items-start mt-2" style="padding-left: 138px">
+          <div class="relative flex-1" style="height: 18px">
+            <template x-for="tick in hourTicks" :key="'gt-' + tick.h">
+              <span
+                class="absolute text-xs font-bold text-gray-500"
+                :style="'left:' + tick.pct + '%; transform: translateX(-50%);'"
+                x-text="tick.label"
+              ></span>
+            </template>
+          </div>
+        </div>
+
+        <!-- Marqueurs du programme sur l'axe du Gantt -->
+        <div x-show="programmeDuJour.length > 0" class="flex items-center mt-1 gap-2">
+          <div
+            class="flex-shrink-0 text-xs font-bold text-amber-600 uppercase"
+            style="width: 130px; text-align: right"
+          >
+            Prog.
+          </div>
+          <div class="relative flex-1" style="height: 22px">
+            <template x-for="ev in programmeDuJour" :key="'pm-' + ev.num">
+              <div
+                class="absolute top-0 w-6 h-6 bg-amber-400 border-2 border-brutal-black text-brutal-black text-xs font-black flex items-center justify-center rounded-full cursor-pointer hover:opacity-85 shadow-sm transition-opacity"
+                :style="'left:' + ev.xPct + '%; transform: translateX(-50%);'"
+                @mouseenter="showProgramTooltip(ev, $event)"
+                @mousemove="moveTooltip($event)"
+                @mouseleave="hideTooltip()"
+                x-text="ev.num"
+              ></div>
+            </template>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PROGRAMME DU JOUR -->
+  <div x-show="programmeDuJour.length > 0" class="mt-6">
+    <div class="brutal-card bg-brutal-white p-6 border-4 border-brutal-black shadow-brutal">
+      <h3 class="text-xl font-black uppercase mb-4">Programme du jour</h3>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="border-b-4 border-brutal-black">
+              <th class="pb-2 font-black text-sm w-8">#</th>
+              <th class="pb-2 font-black text-sm w-36">Heure</th>
+              <th class="pb-2 font-black text-sm">Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template x-for="ev in programmeDuJour" :key="'pr-' + ev.num">
+              <tr class="border-b-2 border-gray-100 hover:bg-gray-50">
+                <td class="py-2 pr-3">
+                  <span
+                    class="inline-flex w-6 h-6 bg-amber-400 border-2 border-brutal-black text-brutal-black text-xs font-black items-center justify-center rounded-full"
+                    x-text="ev.num"
+                  ></span>
+                </td>
+                <td
+                  class="py-2 pr-4 font-bold text-sm whitespace-nowrap font-mono"
+                  x-text="ev.timeLabel"
+                ></td>
+                <td class="py-2 text-sm" x-text="ev.description"></td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- INFOS GÉNÉRALES -->
+  <div x-show="programmeMeta.length > 0" class="mt-4">
+    <div class="brutal-card bg-brutal-ice p-4 border-2 border-brutal-black">
+      <div class="font-black text-xs uppercase mb-2 text-gray-500">Informations générales</div>
+      <template x-for="(line, i) in programmeMeta" :key="'meta-' + i">
+        <p class="text-sm font-body" :class="i > 0 ? 'mt-2' : ''" x-text="line"></p>
+      </template>
+    </div>
+  </div>
+</div>

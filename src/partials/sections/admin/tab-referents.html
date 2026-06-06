@@ -1,0 +1,171 @@
+<!-- Tab: Référents -->
+<div x-show="activeTab === 'referents'" x-data="adminReferentsTab">
+  <div class="brutal-card bg-brutal-white p-8">
+    <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+      <div>
+        <h2 class="text-3xl font-black">Attribution des Postes aux Référents</h2>
+        <p class="font-bold text-gray-600 mt-2">
+          Gérez les responsabilités de chaque référent pour chaque période.
+        </p>
+      </div>
+      <div class="flex items-center gap-3">
+        <!-- Encart statut de sauvegarde automatique -->
+        <div
+          class="flex items-center gap-2 border-2 border-brutal-black px-3 py-1.5 font-black shadow-brutal-sm transition-colors duration-300 text-sm"
+          :class="{
+                         'bg-green-300 text-brutal-black': autoSaveStatus === 'synced',
+                         'bg-blue-300 text-brutal-black animate-pulse': autoSaveStatus === 'saving',
+                         'bg-red-300 text-red-900': autoSaveStatus === 'error'
+                     }"
+        >
+          <template x-if="autoSaveStatus === 'synced'"><span>🟢 Enregistré</span></template>
+          <template x-if="autoSaveStatus === 'saving'"><span>⏳ Sauvegarde...</span></template>
+          <template x-if="autoSaveStatus === 'error'"><span>🔴 Erreur</span></template>
+        </div>
+        <button
+          @click="initReferentAssignments()"
+          class="brutal-btn bg-brutal-ice px-4 py-2 shadow-brutal-sm text-sm"
+        >
+          🔄 Recharger les données
+        </button>
+      </div>
+    </div>
+
+    <div class="space-y-6">
+      <template x-for="ref in getReferents()" :key="ref.id">
+        <div class="border-4 border-brutal-black bg-white p-6 shadow-brutal">
+          <div
+            class="flex flex-wrap items-center justify-between mb-4 pb-4 border-b-2 border-dashed border-gray-300"
+          >
+            <h3 class="text-xl font-black flex items-center gap-2">
+              👑 <span x-text="ref.prenom + ' ' + ref.nom"></span>
+            </h3>
+            <div class="flex gap-2">
+              <button
+                @click="addReferentAssignmentLine(ref.id)"
+                class="brutal-btn bg-brutal-yellow px-4 py-2 text-sm shadow-brutal-sm border-2 border-brutal-black font-bold"
+              >
+                ➕ Ajouter un rôle
+              </button>
+              <!-- Bouton Valider retiré car sauvegarde automatique -->
+            </div>
+          </div>
+
+          <div class="space-y-3">
+            <template x-for="(assign, index) in referentAssignments[ref.id] || []" :key="index">
+              <div
+                class="flex flex-col md:flex-row items-start md:items-center gap-4 bg-gray-50 p-4 border-2 border-brutal-black relative"
+              >
+                <!-- Sélection du poste -->
+                <div class="w-full md:w-1/3">
+                  <label class="block text-xs font-bold uppercase mb-1">Type de poste</label>
+                  <select
+                    x-model="assign.titre"
+                    @change="assign.periodes = []"
+                    class="brutal-input w-full px-3 py-2 text-sm font-bold bg-white"
+                  >
+                    <option value="">— Sélectionner —</option>
+                    <template x-for="titre in getAvailablePosteTitres(assign.titre)" :key="titre">
+                      <option :value="titre" x-text="titre"></option>
+                    </template>
+                  </select>
+                </div>
+
+                <!-- Sélection des périodes -->
+                <div class="w-full md:w-flex-1">
+                  <label class="block text-xs font-bold uppercase mb-1"
+                    >Périodes (Cases à cocher)</label
+                  >
+                  <div class="flex flex-wrap gap-3">
+                    <template
+                      x-for="periode in getPeriodesForTitre(assign.titre, ref.id)"
+                      :key="periode.id"
+                    >
+                      <label
+                        class="flex items-center gap-2 px-3 py-1 border-2 border-brutal-black transition-colors"
+                        :class="periode.takenBy
+                                                    ? 'bg-gray-200 opacity-60 cursor-not-allowed'
+                                                    : (assign.periodes.includes(periode.id) ? 'bg-green-300 cursor-pointer' : 'bg-white hover:bg-brutal-ice cursor-pointer')"
+                        :title="periode.takenBy ? `Déjà pris par ${periode.takenBy.fullName}` : ''"
+                      >
+                        <input
+                          type="checkbox"
+                          :value="periode.id"
+                          x-model="assign.periodes"
+                          :disabled="periode.takenBy !== null"
+                          @change="saveReferentAssignments(ref.id)"
+                          class="w-4 h-4 accent-brutal-black disabled:cursor-not-allowed"
+                        />
+                        <span class="text-sm font-bold" x-text="periode.nom"></span>
+                        <span
+                          x-show="periode.takenBy"
+                          class="text-xs italic text-gray-600"
+                          x-text="`(pris par ${periode.takenBy?.fullName})`"
+                        ></span>
+                      </label>
+                    </template>
+                    <div x-show="!assign.titre" class="text-sm italic text-gray-500 py-1">
+                      Sélectionnez d'abord un poste.
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Bouton supprimer ligne -->
+                <button
+                  @click="removeReferentAssignmentLine(ref.id, index)"
+                  class="brutal-btn bg-red-500 text-white px-3 py-2 border-2 border-brutal-black self-end md:self-center shadow-brutal-sm"
+                  title="Supprimer cette ligne"
+                >
+                  🗑️
+                </button>
+              </div>
+            </template>
+
+            <div
+              x-show="!referentAssignments[ref.id] || referentAssignments[ref.id].length === 0"
+              class="text-center py-4 bg-gray-50 border-2 border-dashed border-gray-300"
+            >
+              <p class="text-gray-500 font-bold italic">Aucun rôle attribué pour le moment.</p>
+            </div>
+          </div>
+        </div>
+      </template>
+    </div>
+
+    <!-- Postes Orphelins -->
+    <div class="mt-12 border-4 border-brutal-black bg-brutal-yellow p-6 shadow-brutal">
+      <h3 class="text-2xl font-black mb-4 flex items-center gap-2">⚠️ Postes sans référent</h3>
+      <p class="font-bold mb-6 text-brutal-black">
+        Ces postes nécessitent encore d'être attribués à un référent ou admin-juge.
+      </p>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <template x-for="orphan in getOrphanPostes()" :key="orphan.titre">
+          <div class="bg-white border-2 border-brutal-black p-4 shadow-brutal-sm">
+            <h4
+              class="text-xl font-bold border-b-2 border-brutal-black pb-2 mb-3"
+              x-text="orphan.titre"
+            ></h4>
+            <div class="flex flex-wrap gap-2">
+              <template x-for="per in orphan.periodes" :key="per.id">
+                <span
+                  class="bg-red-200 border-2 border-brutal-black px-2 py-1 text-xs font-bold"
+                  x-text="per.nom"
+                ></span>
+              </template>
+            </div>
+          </div>
+        </template>
+
+        <div
+          x-show="getOrphanPostes().length === 0"
+          class="col-span-full text-center py-8 bg-white border-2 border-dashed border-brutal-black"
+        >
+          <p class="font-bold text-green-600 text-lg">
+            🎉 Tous les postes ont un référent assigné !
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

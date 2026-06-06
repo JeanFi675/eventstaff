@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Suivi T-shirts Bénévoles</title>
+
+    <!-- Sécurité : CSP en <meta> (GitHub Pages n'autorise pas les en-têtes HTTP custom).
+         Variante stricte alignée sur src/partials/layout/head.html (Tailwind compilé, plus de CDN). -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' <%- cspConnectSrc %>; object-src 'none'; base-uri 'self'; form-action 'self'"
+    />
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+
+    <!-- Tailwind compilé via src/styles/main.css (importé par src/js/scanner-tshirt.js) + thème Brutalist -->
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+</head>
+
+<body class="bg-gray-100 min-h-screen p-4 flex items-center justify-center">
+
+    <main x-data="tshirtScanner" x-cloak class="max-w-md w-full bg-white brutal-card p-6 rounded-none relative">
+        <h1 class="text-2xl font-black mb-1 uppercase text-center border-b-4 border-black pb-2">👕 Suivi T-shirts</h1>
+
+        <!-- Loading State -->
+        <div x-show="loading" class="text-center py-8">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-black mx-auto mb-4"></div>
+            <p class="font-bold">Chargement...</p>
+        </div>
+
+        <!-- Error State -->
+        <div x-show="error" class="bg-red-100 border-2 border-red-500 text-red-700 p-4 mb-4 font-bold text-center"
+            style="display: none;">
+            <p x-text="error"></p>
+            <a href="index.html" class="block mt-2 underline">Retour</a>
+        </div>
+
+        <!-- Main Content -->
+        <div x-show="!loading && !error && volunteers.length > 0" style="display: none;">
+
+            <p x-show="volunteers.length > 1" class="text-center mb-6 font-bold text-gray-600">Famille détectée</p>
+
+            <div class="space-y-4">
+                <template x-for="v in volunteers" :key="v.benevole_id">
+                    <div class="border-2 border-black p-3 bg-gray-50 relative flex gap-3 pb-8 md:pb-3"
+                        :class="{'opacity-50': v.has_recupere_tshirt}">
+
+                        <!-- Checkbox for Selection -->
+                        <div class="flex items-start pt-1">
+                            <input type="checkbox" x-model="v.selected"
+                                :disabled="v.has_recupere_tshirt || !v.has_registrations"
+                                class="w-6 h-6 border-2 border-black accent-black cursor-pointer">
+                        </div>
+
+                        <div class="flex-grow">
+                            <!-- Helper Badge -->
+                            <div class="absolute -top-3 -right-2 bg-black text-white text-xs px-2 py-1 font-bold"
+                                x-show="v.has_recupere_tshirt">
+                                RÉCUPÉRÉ
+                            </div>
+                            <div class="absolute -top-3 -right-2 bg-red-500 text-white text-xs px-2 py-1 font-bold"
+                                x-show="!v.has_registrations">
+                                NON ÉLIGIBLE
+                            </div>
+
+                            <h3 class="font-black text-lg uppercase" x-text="v.prenom + ' ' + v.nom"></h3>
+
+                            <div class="mt-2" x-show="v.has_registrations">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <label class="font-bold text-sm">Taille:</label>
+                                    <select x-model="v.taille_tshirt" :disabled="v.has_recupere_tshirt"
+                                        class="brutal-input py-1 px-2 text-sm w-24">
+                                        <option value="">— choisir —</option>
+                                        <option value="SANS">SANS</option>
+                                        <option value="XS">XS</option>
+                                        <option value="S">S</option>
+                                        <option value="M">M</option>
+                                        <option value="L">L</option>
+                                        <option value="XL">XL</option>
+                                        <option value="XXL">XXL</option>
+                                    </select>
+                                </div>
+
+                                <p x-show="v.has_recupere_tshirt" class="text-sm font-bold text-green-700 italic mt-1">
+                                    T-shirt remis ✅
+                                </p>
+                            </div>
+
+                            <div x-show="!v.has_registrations" class="mt-2 text-xs text-red-600 font-bold italic">
+                                Doit s'inscrire à un poste pour bénéficier d'un T-shirt.
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+
+            <!-- Spacer to prevent content from being hidden behind fixed button -->
+            <div class="h-32" x-show="anySelected"></div>
+
+            <!-- Global Action Button -->
+            <div class="fixed bottom-0 left-0 w-full p-4 bg-white border-t-4 border-black shadow-lg z-50"
+                x-show="anySelected" x-transition:enter="transition ease-out duration-300"
+                x-transition:enter-start="transform translate-y-full" x-transition:enter-end="transform translate-y-0"
+                x-transition:leave="transition ease-in duration-300" x-transition:leave-start="transform translate-y-0"
+                x-transition:leave-end="transform translate-y-full">
+
+                <button @click="validateSelected()"
+                    class="w-full brutal-btn bg-brutal-blue py-4 font-black text-lg uppercase hover:bg-lime-400 shadow-brutal flex items-center justify-center gap-2">
+                    <span>Valider la Sélection</span>
+                    <span>👕</span>
+                </button>
+            </div>
+
+        </div>
+
+        <div x-show="!loading && !error && volunteers.length === 0" style="display: none;"
+            class="text-center py-8 text-gray-500">
+            Aucun bénévole trouvé pour ce code.
+        </div>
+
+        <!-- Modale de confirmation (Phase 5.3.1 — remplace window.confirm) -->
+        <div x-show="confirmModal.open"
+            class="fixed inset-0 z-[60] flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm p-4"
+            style="display: none;">
+            <div class="bg-white brutal-card p-6 max-w-sm w-full border-2 border-black"
+                @click.outside="handleConfirm(false)">
+                <h3 class="text-xl font-black mb-3" x-text="confirmModal.title"></h3>
+                <p class="text-base mb-6 whitespace-pre-line" x-text="confirmModal.message"></p>
+                <div class="flex flex-col sm:flex-row justify-end gap-3">
+                    <button @click="handleConfirm(false)"
+                        class="brutal-btn bg-white border-2 border-black px-5 py-2 font-bold hover:bg-gray-100">
+                        Annuler
+                    </button>
+                    <button @click="handleConfirm(true)"
+                        class="brutal-btn bg-brutal-blue border-2 border-black px-5 py-2 font-black hover:bg-lime-400">
+                        Confirmer
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <script type="module" src="./src/js/scanner-tshirt.js"></script>
+</body>
+
+</html>

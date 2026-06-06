@@ -1,0 +1,52 @@
+<!-- Tabs -->
+<div class="brutal-card bg-brutal-white mb-8 flex overflow-x-auto">
+  <button
+    @click="activeTab = 'visual-creator'"
+    class="tab-button px-8 py-4 font-black text-lg bg-yellow-300"
+    :class="{ 'active': activeTab === 'visual-creator' }"
+  >
+    🛠️ Configuration
+  </button>
+  <button
+    @click="activeTab = 'referents'"
+    class="tab-button px-8 py-4 font-black text-lg"
+    :class="{ 'active': activeTab === 'referents' }"
+  >
+    👑 Référents
+  </button>
+  <button
+    @click="activeTab = 'benevoles'"
+    class="tab-button px-8 py-4 font-black text-lg"
+    :class="{ 'active': activeTab === 'benevoles' }"
+  >
+    👥 Bénévoles
+  </button>
+  <button
+    @click="activeTab = 'cagnotte-forcee'"
+    class="tab-button px-8 py-4 font-black text-lg"
+    :class="{ 'active': activeTab === 'cagnotte-forcee' }"
+  >
+    💶 Cagnotte forcée
+  </button>
+  <button
+    @click="activeTab = 'mailing'"
+    class="tab-button px-8 py-4 font-black text-lg"
+    :class="{ 'active': activeTab === 'mailing' }"
+  >
+    📧 Mailing
+  </button>
+  <button
+    @click="activeTab = 'recap'"
+    class="tab-button px-8 py-4 font-black text-lg"
+    :class="{ 'active': activeTab === 'recap' }"
+  >
+    📊 Récapitulatif
+  </button>
+  <button
+    @click="activeTab = 'heures'"
+    class="tab-button px-8 py-4 font-black text-lg"
+    :class="{ 'active': activeTab === 'heures' }"
+  >
+    ⏱️ Heures
+  </button>
+</div>

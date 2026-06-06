@@ -1,0 +1,286 @@
+<!-- Liste des Postes -->
+<div x-show="profiles.length > 0">
+  <div class="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+    <h2
+      class="text-3xl font-black text-brutal-black"
+      x-text="showReferentView ? '👥 Liste de mes bénévoles' : '✅ Mes inscriptions'"
+    ></h2>
+
+    <!-- Filtres et Vues -->
+    <div class="flex flex-wrap gap-3 items-center">
+      <!-- Mobile: Volunteer Filter (Only in My Inscriptions view) -->
+      <div x-show="showMyInscriptions && profiles.length > 1" class="md:hidden">
+        <select
+          x-model="selectedVolunteerId"
+          class="brutal-input py-2 pl-3 pr-8 text-sm font-bold border-2 border-brutal-black shadow-brutal-sm focus:outline-none focus:ring-0"
+        >
+          <option value="">Tous les bénévoles</option>
+          <template x-for="profile in profiles" :key="profile.id">
+            <option :value="profile.id" x-text="profile.prenom"></option>
+          </template>
+        </select>
+      </div>
+
+      <!-- Referent: Go to Referent View (Visible if Referent AND not already in View) -->
+      <button
+        x-show="isReferent() && !showReferentView"
+        @click="toggleReferentView()"
+        class="brutal-btn px-4 py-2 text-sm font-bold border-2 border-brutal-black shadow-brutal-sm transition-all active:scale-95 flex items-center gap-2 bg-brutal-ice text-brutal-black"
+      >
+        <span>👥 Liste de mes bénévoles</span>
+      </button>
+
+      <!-- Back Button (Visible in Referent View) -->
+      <button
+        x-show="showReferentView"
+        @click="toggleReferentView()"
+        class="brutal-btn px-4 py-2 text-sm font-bold border-2 border-brutal-black shadow-brutal-sm transition-all active:scale-95 flex items-center gap-2 bg-white text-brutal-black"
+      >
+        <span>⬅ Retour</span>
+      </button>
+
+      <!-- Switch Referent Button (Only if multiple referents AND in Referent View) -->
+      <button
+        x-show="showReferentView && referentProfiles.length > 1"
+        @click="showReferentSelectionModal = true"
+        class="brutal-btn bg-yellow-400 text-brutal-black px-4 py-2 text-sm font-bold border-2 border-brutal-black shadow-brutal-sm transition-all active:scale-95 flex items-center gap-2"
+      >
+        <span>🔄 Changer de référent</span>
+      </button>
+
+      <!-- EMAIL BUTTON: Visible only in 'My Inscriptions' view -->
+      <button
+        x-show="showMyInscriptions && !showReferentView"
+        @click="sendPlanningByEmail()"
+        :disabled="loading"
+        class="brutal-btn px-4 py-2 text-sm font-bold border-2 border-brutal-black shadow-brutal-sm transition-all active:scale-95 flex items-center gap-2 bg-white text-brutal-black hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        <span x-show="!loading">📧 Recevoir mon planning</span>
+        <span x-show="loading" class="animate-spin">⏳</span>
+      </button>
+
+      <!-- PLANNING GLOBAL BUTTON -->
+      <a
+        href="besoins.html"
+        class="brutal-btn bg-blue-400 text-brutal-black px-4 py-2 text-sm border-2 border-brutal-black shadow-brutal-sm font-bold flex items-center gap-2 hover:bg-blue-300 transition-colors"
+      >
+        <span>📊 Planning global</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- VUE CALENDRIER -->
+  <div x-show="!showReferentView">
+    <%- include('/src/partials/sections/index/planning-calendar.html') %>
+  </div>
+
+  <!-- Loader -->
+  <div x-show="loading && showReferentView" class="text-center py-12">
+    <div
+      class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-brutal-black border-t-transparent"
+    ></div>
+    <p class="mt-4 font-bold">Chargement des bénévoles...</p>
+  </div>
+
+  <!-- VUE LISTE REFERENT -->
+  <div
+    x-show="showReferentView && !loading"
+    class="animate-fade-in w-full max-w-full overflow-hidden"
+  >
+    <template
+      x-for="group in getReferentViewData()"
+      :key="group.name + '-' + selectedReferentProfileId"
+    >
+      <div class="mb-12" x-data="{ open: false }">
+        <!-- Period Header -->
+        <div
+          @click="open = !open"
+          class="brutal-card bg-brutal-black text-brutal-white p-4 mb-6 cursor-pointer hover:bg-gray-900 transition-colors flex justify-between items-center select-none"
+        >
+          <h3 class="text-2xl font-black uppercase tracking-wide" x-text="group.name"></h3>
+          <div
+            class="text-4xl transform transition-transform duration-300"
+            :class="open ? 'rotate-180' : ''"
+          >
+            ▼
+          </div>
+        </div>
+
+        <div class="grid gap-6" x-show="open" x-transition>
+          <template x-for="poste in group.postes" :key="poste.id">
+            <div class="brutal-card p-6 bg-white">
+              <!-- Poste Header -->
+              <div class="mb-6 border-b-2 border-brutal-black pb-4">
+                <h4 class="text-xl font-black mb-2" x-text="poste.titre"></h4>
+                <p class="text-base font-bold text-gray-700">
+                  📅 <span x-text="formatDate(poste.periode_debut)"></span>
+                  -
+                  <span x-text="formatTime(poste.periode_debut)"></span>
+                  à
+                  <span x-text="formatTime(poste.periode_fin)"></span>
+                </p>
+                <p class="text-sm font-bold text-gray-600 mt-2 flex items-center gap-2">
+                  <span>📊 Inscrits : <span x-text="poste.inscrits_actuels"></span></span>
+                  <span class="text-gray-400">|</span>
+                  <span>Min : <span x-text="poste.nb_min"></span></span>
+                  <span class="text-gray-400">-</span>
+                  <span>Max : <span x-text="poste.nb_max"></span></span>
+                </p>
+              </div>
+
+              <!-- Volunteers List -->
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <template x-for="vol in poste.volunteers" :key="vol.id">
+                  <div
+                    class="border-2 border-gray-200 p-3 bg-gray-50 hover:bg-white hover:border-brutal-black transition-colors"
+                  >
+                    <div class="font-black text-lg mb-1" x-text="vol.prenom + ' ' + vol.nom"></div>
+                    <div class="flex flex-col gap-1 text-sm">
+                      <a
+                        :href="'tel:' + vol.telephone"
+                        class="flex items-center gap-2 hover:underline text-gray-700"
+                      >
+                        <span>📞</span> <span x-text="vol.telephone"></span>
+                      </a>
+                      <a
+                        x-show="vol.telephone"
+                        :href="formatWhatsAppUrl(vol.telephone)"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="flex items-center gap-2 hover:underline text-green-700 font-bold"
+                      >
+                        <span>📱</span> <span>WhatsApp</span>
+                      </a>
+                      <a
+                        :href="'mailto:' + vol.email"
+                        class="flex items-center gap-2 hover:underline text-gray-700"
+                      >
+                        <span>✉️</span> <span x-text="vol.email"></span>
+                      </a>
+                    </div>
+                  </div>
+                </template>
+              </div>
+
+              <div
+                x-show="poste.volunteers.length === 0"
+                class="text-center italic text-gray-500 py-4"
+              >
+                Aucun bénévole inscrit pour le moment.
+              </div>
+            </div>
+          </template>
+        </div>
+      </div>
+    </template>
+
+    <div x-show="referentInscriptions.length === 0 && !loading" class="text-center py-12">
+      <p class="text-xl font-bold text-gray-500">Aucune inscription trouvée pour vos postes.</p>
+    </div>
+  </div>
+
+  <!-- VUE LISTE -->
+  <div x-show="viewMode === 'list' && !showReferentView" class="animate-fade-in">
+    <!-- Groupement par période -->
+    <template x-for="group in groupedPostes()" :key="group.name">
+      <div class="mb-12" x-data="{ open: true }">
+        <!-- Period Header with Neo-Brutalist Style -->
+        <div
+          @click="open = !open"
+          class="brutal-card bg-brutal-black text-brutal-white p-4 mb-4 cursor-pointer hover:bg-gray-900 transition-colors flex justify-between items-center select-none"
+        >
+          <div>
+            <h3 class="text-2xl font-black uppercase tracking-wide" x-text="group.name"></h3>
+            <div class="mt-2 flex items-center gap-4">
+              <span class="font-bold text-lg">
+                📊 <span x-text="group.totalPostes"></span> poste<span
+                  x-show="group.totalPostes > 1"
+                  >s</span
+                >
+              </span>
+              <span class="font-bold text-lg">
+                👥 <span x-text="group.totalInscrits"></span> /
+                <span x-text="group.totalMax"></span>
+                inscrit<span x-show="group.totalInscrits > 1">s</span>
+              </span>
+            </div>
+          </div>
+          <div
+            class="text-4xl transform transition-transform duration-300"
+            :class="open ? 'rotate-180' : ''"
+          >
+            ▼
+          </div>
+        </div>
+
+        <div class="grid gap-6" x-show="open" x-transition>
+          <!-- SUBGROUPS LOOP -->
+          <template x-for="subgroup in group.subgroups" :key="subgroup.id">
+            <div class="mb-4" x-data="{ openSub: subgroup.expanded }">
+              <!-- Subgroup Header -->
+              <div
+                @click="openSub = !openSub"
+                x-show="subgroup.title"
+                class="flex justify-between items-center bg-gray-200 p-3 cursor-pointer select-none border-l-4 border-brutal-black hover:bg-gray-300 transition-colors mb-4"
+              >
+                <h4
+                  class="text-lg font-black uppercase text-brutal-black"
+                  x-text="subgroup.title"
+                ></h4>
+                <div
+                  class="text-xl transform transition-transform duration-300"
+                  :class="openSub ? 'rotate-180' : ''"
+                >
+                  ▼
+                </div>
+              </div>
+
+              <!-- Posts inside Subgroup -->
+              <div class="grid gap-6 pl-0 md:pl-2" x-show="openSub" x-transition>
+                <template x-for="poste in subgroup.postes" :key="poste.poste_id">
+                  <div>
+                    <!-- VUE NORMALE -->
+                    <%- include('../../components/post-card-details.html') %>
+                  </div>
+                </template>
+              </div>
+            </div>
+          </template>
+        </div>
+      </div>
+    </template>
+  </div>
+
+  <!-- REFERENT SELECTION MODAL -->
+  <div
+    x-show="showReferentSelectionModal"
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+    x-transition.opacity
+  >
+    <div
+      class="brutal-card bg-brutal-white p-8 max-w-md w-full mx-4 relative"
+      @click.away="showReferentSelectionModal = false"
+    >
+      <h3 class="text-2xl font-black mb-6 text-center">Choisir le profil référent</h3>
+
+      <div class="grid gap-4">
+        <template x-for="profile in referentProfiles" :key="profile.id">
+          <button
+            @click="selectReferent(profile.id)"
+            class="brutal-btn w-full py-4 text-lg font-bold border-2 border-brutal-black shadow-brutal hover:bg-brutal-ice transition-colors flex items-center justify-center gap-3"
+          >
+            <span class="text-2xl">👤</span>
+            <span x-text="profile.prenom + ' ' + profile.nom"></span>
+          </button>
+        </template>
+      </div>
+
+      <button
+        @click="showReferentSelectionModal = false; if(!selectedReferentProfileId) showReferentView = false"
+        class="mt-6 w-full text-center underline font-bold text-gray-600 hover:text-black"
+      >
+        Annuler
+      </button>
+    </div>
+  </div>
+</div>

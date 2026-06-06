@@ -1,0 +1,3 @@
+# Normalisation des fins de ligne — rend pg_dump --schema-only déterministe
+# entre postes Windows/macOS/Linux (cf. Phase 2.9 du refactoring).
+*.sql text eol=lf

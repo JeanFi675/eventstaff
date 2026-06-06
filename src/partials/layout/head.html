@@ -1,0 +1,24 @@
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- Sécurité : CSP en <meta> (GitHub Pages n'autorise pas les en-têtes HTTP custom).
+       'unsafe-eval' requis par Alpine.js ; 'unsafe-inline' (style) par les bindings x-show/:style.
+       connect-src = API/Auth/Realtime Supabase. Voir docs/deployment.md §En-têtes de sécurité. -->
+  <meta
+    http-equiv="Content-Security-Policy"
+    content="default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' <%- cspConnectSrc %>; object-src 'none'; base-uri 'self'; form-action 'self'"
+  />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
+  <title><%= title %></title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  />
+
+  <!-- Main CSS (Tailwind) -->
+  <link rel="stylesheet" href="./src/styles/main.css" />
+</head>

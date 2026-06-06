@@ -1,0 +1,127 @@
+<!-- Tab: Heures de bénévolat -->
+<div x-show="activeTab === 'heures'" x-data="adminHeuresTab" class="space-y-6">
+  <!-- TOTAL GÉNÉRAL -->
+  <div class="brutal-card bg-brutal-white p-6">
+    <h2 class="text-3xl font-black mb-6">⏱️ Heures de bénévolat</h2>
+    <div class="grid grid-cols-3 gap-4">
+      <div class="border-4 border-brutal-black p-4 bg-brutal-ice text-center">
+        <p class="text-xs font-black uppercase text-gray-500 mb-1">Réalisées (inscrits)</p>
+        <p class="text-4xl font-black" x-text="getTotalHeures().inscrits + ' h'"></p>
+      </div>
+      <div class="border-4 border-brutal-black p-4 bg-yellow-50 text-center">
+        <p class="text-xs font-black uppercase text-gray-500 mb-1">Objectif minimum</p>
+        <p class="text-4xl font-black" x-text="getTotalHeures().min + ' h'"></p>
+      </div>
+      <div class="border-4 border-brutal-black p-4 bg-green-50 text-center">
+        <p class="text-xs font-black uppercase text-gray-500 mb-1">Objectif maximum</p>
+        <p class="text-4xl font-black" x-text="getTotalHeures().max + ' h'"></p>
+      </div>
+    </div>
+    <p class="text-xs text-gray-500 font-bold mt-3">
+      1 bénévole-heure = 1 personne pendant 1 heure
+    </p>
+  </div>
+
+  <!-- DÉTAIL PAR PÉRIODE -->
+  <template x-for="periode in getHeuresParPeriode()" :key="periode.nom">
+    <div class="brutal-card bg-brutal-white p-6">
+      <!-- En-tête période -->
+      <div
+        class="flex flex-wrap justify-between items-center gap-4 mb-4 pb-4 border-b-4 border-brutal-black"
+      >
+        <h3 class="text-xl font-black" x-text="periode.nom"></h3>
+        <div class="flex gap-6 text-sm font-bold">
+          <span class="flex flex-col items-center">
+            <span
+              class="text-2xl font-black text-brutal-black"
+              x-text="periode.totalHeuresInscrits + ' h'"
+            ></span>
+            <span class="text-xs text-gray-500 uppercase">inscrits</span>
+          </span>
+          <span class="text-gray-300 text-2xl">|</span>
+          <span class="flex flex-col items-center">
+            <span
+              class="text-2xl font-black text-yellow-600"
+              x-text="periode.totalHeuresMin + ' h'"
+            ></span>
+            <span class="text-xs text-gray-500 uppercase">min</span>
+          </span>
+          <span class="text-gray-300 text-2xl">|</span>
+          <span class="flex flex-col items-center">
+            <span
+              class="text-2xl font-black text-green-600"
+              x-text="periode.totalHeuresMax + ' h'"
+            ></span>
+            <span class="text-xs text-gray-500 uppercase">max</span>
+          </span>
+        </div>
+      </div>
+
+      <!-- Tableau postes -->
+      <div class="hidden md:block overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b-2 border-brutal-black text-xs uppercase text-gray-500">
+              <th class="text-left py-2 px-2 font-black">Poste</th>
+              <th class="text-center py-2 px-2 font-black">Horaire</th>
+              <th class="text-center py-2 px-2 font-black">Durée</th>
+              <th class="text-center py-2 px-2 font-black">Inscrits</th>
+              <th class="text-right py-2 px-2 font-black">H. inscrits</th>
+              <th class="text-right py-2 px-2 font-black">H. min</th>
+              <th class="text-right py-2 px-2 font-black">H. max</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template x-for="poste in periode.postes" :key="poste.id">
+              <tr class="border-b border-gray-200 hover:bg-gray-50">
+                <td class="py-2 px-2 font-bold" x-text="poste.titre"></td>
+                <td class="py-2 px-2 text-center text-gray-600 font-mono text-xs">
+                  <span x-text="formatTime(poste.debut)"></span> →
+                  <span x-text="formatTime(poste.fin)"></span>
+                </td>
+                <td class="py-2 px-2 text-center font-bold" x-text="poste.dureeH + ' h'"></td>
+                <td class="py-2 px-2 text-center font-bold" x-text="poste.inscrits"></td>
+                <td
+                  class="py-2 px-2 text-right font-black"
+                  x-text="poste.heuresInscrits + ' h'"
+                ></td>
+                <td
+                  class="py-2 px-2 text-right text-yellow-700 font-bold"
+                  x-text="poste.heuresMin + ' h'"
+                ></td>
+                <td
+                  class="py-2 px-2 text-right text-green-700 font-bold"
+                  x-text="poste.heuresMax + ' h'"
+                ></td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Vue mobile -->
+      <div class="md:hidden space-y-2">
+        <template x-for="poste in periode.postes" :key="poste.id">
+          <div class="border border-gray-200 p-3 bg-gray-50">
+            <div class="flex justify-between items-start mb-1">
+              <span class="font-bold text-sm" x-text="poste.titre"></span>
+              <span class="font-black text-sm ml-2" x-text="poste.heuresInscrits + ' h'"></span>
+            </div>
+            <div class="text-xs text-gray-500 font-mono">
+              <span x-text="formatTime(poste.debut)"></span> →
+              <span x-text="formatTime(poste.fin)"></span> &nbsp;·&nbsp;
+              <span x-text="poste.dureeH + ' h'"></span> &nbsp;·&nbsp;
+              <span x-text="poste.inscrits"></span> inscrits
+            </div>
+            <div class="text-xs mt-1">
+              min
+              <span class="font-bold text-yellow-700" x-text="poste.heuresMin + ' h'"></span>
+              &nbsp;/&nbsp; max
+              <span class="font-bold text-green-700" x-text="poste.heuresMax + ' h'"></span>
+            </div>
+          </div>
+        </template>
+      </div>
+    </div>
+  </template>
+</div>

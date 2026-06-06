@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="fr">
+  <%- include('/src/partials/layout/head.html', { title: 'Planning Global & Programme' }) %>
+
+  <body class="bg-brutal-ice min-h-screen">
+    <%- include('/src/partials/components/toast.html') %>
+
+    <!-- Header -->
+    <header class="bg-brutal-black text-brutal-white py-6 mb-6 border-b-4 border-brutal-black">
+      <div class="container mx-auto px-4">
+        <div class="flex justify-between items-start md:items-center flex-col md:flex-row gap-4">
+          <div>
+            <h1 class="text-3xl font-black tracking-tight">🌍 PLANNING GLOBAL & PROGRAMME</h1>
+            <p class="text-xl font-body mt-2">
+              Vue d'ensemble des effectifs et du programme complet
+            </p>
+          </div>
+          <div class="flex flex-wrap gap-2 text-sm font-bold">
+            <a
+              href="index.html"
+              class="brutal-btn bg-brutal-ice text-brutal-black px-3 py-2 border-2 border-transparent shadow-brutal-sm flex items-center gap-2 hover:bg-white transition-colors"
+            >
+              ← Retour
+            </a>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Pas de x-init="init()" : Alpine appelle automatiquement init() ; l'ajouter la doublerait. -->
+    <main class="container mx-auto px-4 pb-12" x-data="adminTimelineApp()">
+      <div x-show="loading" class="brutal-card bg-brutal-white p-8 max-w-2xl mx-auto text-center">
+        <p class="text-2xl font-black">⏳ Chargement des données...</p>
+      </div>
+
+      <div x-show="!loading" style="display: none" class="space-y-8">
+        <!-- Sélecteur de jour -->
+        <div><%- include('/src/partials/sections/admin-timeline/day-picker.html') %></div>
+
+        <!-- Vue chrono (si un jour est sélectionné) -->
+        <div x-show="selectedDay">
+          <%- include('/src/partials/sections/admin-timeline/chart.html') %>
+        </div>
+      </div>
+    </main>
+
+    <!-- Script spécifique pour la page besoins -->
+    <script type="module" src="./src/js/besoins.js"></script>
+  </body>
+</html>

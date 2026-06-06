@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="fr">
+  <%- include('/src/partials/layout/head.html', { title: 'Appel aux Bénévoles - Inscription' }) %>
+
+  <!-- Pas de x-init="init()" : Alpine appelle automatiquement la méthode init() du composant.
+       L'ajouter ici la déclencherait deux fois (double chargement des données). -->
+  <body class="bg-brutal-ice min-h-screen overflow-x-hidden" x-data="app()">
+    <%- include('/src/partials/components/toast.html') %> <%-
+    include('/src/partials/components/confirm-modal.html') %> <%-
+    include('/src/partials/layout/header.html') %>
+
+    <main class="container mx-auto px-4 pb-24">
+      <%- include('/src/partials/sections/index/login.html') %>
+
+      <!-- Section Utilisateur Connecté -->
+      <section x-show="user" style="display: none">
+        <!-- Barre Utilisateur -->
+        <div
+          class="sticky top-0 z-40 brutal-card bg-brutal-white p-2 md:p-3 mb-2 md:mb-4 flex flex-col gap-2 md:gap-3 shadow-brutal border-b-2 border-brutal-black"
+        >
+          <!-- Header: Info User + Cagnotte (Side by Side on mobile if possible, or stacked compact) -->
+          <div
+            class="flex flex-col xl:flex-row justify-between xl:justify-start items-start xl:items-center w-full gap-2 xl:gap-4"
+          >
+            <!-- User Info (Haut sur mobile, Gauche sur desktop) -->
+            <div class="w-full xl:w-auto shrink-0 pr-4 xl:border-r border-gray-200">
+              <div class="flex justify-between items-center">
+                <div>
+                  <p
+                    class="text-[10px] md:text-xs font-bold text-gray-500 uppercase tracking-widest leading-none"
+                  >
+                    Compte connecté
+                  </p>
+                  <div class="flex items-center gap-2 mt-1">
+                    <p
+                      class="text-sm md:text-base font-black break-all leading-none focus:outline-none"
+                      x-text="user?.email"
+                    ></p>
+                    <span
+                      x-show="profiles.some(p => p.role === 'admin')"
+                      class="inline-block px-1.5 py-0.5 bg-brutal-black text-white font-bold text-[10px] rounded border border-brutal-black"
+                    >
+                      Admin
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Widgets Group (Milieu sur desktop) -->
+            <div
+              class="w-full xl:w-auto flex-1 xl:flex xl:flex-row gap-2"
+              :class="config.cagnotte_active ? 'grid grid-cols-2' : 'grid grid-cols-1'"
+            >
+              <!-- Cagnotte Widget -->
+              <%- include('/src/partials/components/cagnotte-widget.html') %>
+
+              <!-- Tshirt Widget -->
+              <%- include('/src/partials/components/tshirt-widget.html') %>
+            </div>
+
+            <!-- Buttons Grid (Droite sur desktop) -->
+            <div
+              class="grid grid-cols-2 md:flex md:flex-row gap-2 w-full xl:w-auto shrink-0 justify-start xl:justify-end ml-auto"
+            >
+              <a
+                x-show="profiles.some(p => p.role === 'admin')"
+                href="admin.html"
+                class="brutal-btn bg-brutal-ice px-3 py-2 text-sm shadow-brutal-sm text-center flex items-center justify-center font-bold whitespace-nowrap"
+              >
+                🔐 Admin
+              </a>
+
+              <button
+                @click="openWizard()"
+                class="brutal-btn bg-yellow-400 text-brutal-black px-3 py-2 text-sm shadow-brutal-sm border-2 border-brutal-black font-bold flex items-center justify-center whitespace-nowrap"
+              >
+                🧙 Assistant
+              </button>
+
+              <button
+                @click="logout()"
+                class="brutal-btn bg-brutal-black text-brutal-white px-3 py-2 text-sm shadow-brutal-sm flex items-center justify-center font-bold whitespace-nowrap"
+              >
+                Déconnexion
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <%- include('/src/partials/sections/index/planning-list.html') %>
+      </section>
+    </main>
+
+    <!-- Global Action Button (Floating) -->
+    <div
+      class="fixed bottom-10 right-4 z-50"
+      x-show="user && !wizardOpen"
+      style="
+        position: fixed !important;
+        bottom: 2.5rem !important;
+        right: 1rem !important;
+        z-index: 9999 !important;
+      "
+    >
+      <button
+        @click="openWizard()"
+        class="brutal-btn bg-yellow-400 text-brutal-black px-4 py-3 rounded-full shadow-brutal border-2 border-brutal-black font-black text-base flex items-center gap-2 hover:scale-105 transition-transform"
+      >
+        <span>🧙‍♂️ Assistant</span>
+      </button>
+    </div>
+
+    <%- include('/src/partials/wizard.html') %>
+
+    <!-- Main Application Logic -->
+    <script type="module" src="./src/js/main.js"></script>
+  </body>
+</html>

@@ -1,0 +1,11 @@
+<!-- Toast Notifications -->
+<div class="fixed top-4 right-4 z-50 space-y-2">
+  <template x-for="toast in toasts" :key="toast.id">
+    <div
+      class="toast brutal-card px-6 py-4 max-w-md"
+      :class="toast.type === 'error' ? 'bg-brutal-black text-brutal-ice' : 'bg-brutal-ice text-brutal-black'"
+    >
+      <p class="font-bold" x-text="toast.message"></p>
+    </div>
+  </template>
+</div>

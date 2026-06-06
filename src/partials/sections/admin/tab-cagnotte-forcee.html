@@ -1,0 +1,509 @@
+<!-- Tab: Cagnotte Forcée -->
+<div x-show="activeTab === 'cagnotte-forcee'" x-data="adminCagnotteForceeTab">
+  <div class="brutal-card bg-brutal-white p-8">
+    <div
+      class="flex flex-col md:flex-row justify-between items-start mb-8 gap-4 pb-6 border-b-4 border-brutal-black"
+    >
+      <div>
+        <h2 class="text-4xl font-black uppercase tracking-tight">
+          💶 Gestion des cagnottes forcées
+        </h2>
+        <p class="font-bold text-gray-600 mt-2">
+          Permet de forcer le montant d'une cagnotte pour un bénévole sans suivre ses inscriptions
+          réelles.
+        </p>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <!-- Colonne de Gauche : Recherche et Sélection -->
+      <div class="lg:col-span-5 space-y-6">
+        <div class="border-4 border-brutal-black bg-white p-6 shadow-brutal-sm">
+          <h3 class="text-xl font-black uppercase mb-4 flex items-center gap-2">
+            <span>🔍</span> 1. Rechercher un bénévole
+          </h3>
+          <div class="relative mb-4">
+            <input
+              type="text"
+              x-model="forcedSearchQuery"
+              placeholder="Rechercher par nom, prénom ou email..."
+              class="brutal-input w-full pl-12 pr-10 py-3 font-bold text-base shadow-brutal-sm focus:shadow-brutal transition-all"
+            />
+            <span class="absolute left-4 top-1/2 transform -translate-y-1/2 text-xl">🔍</span>
+            <button
+              x-show="forcedSearchQuery"
+              @click="forcedSearchQuery = ''"
+              class="absolute right-3 top-1/2 transform -translate-y-1/2 text-lg font-black hover:text-brutal-red transition-colors"
+            >
+              ✕
+            </button>
+          </div>
+
+          <!-- Liste des résultats de recherche -->
+          <div
+            class="max-h-[350px] overflow-y-auto border-2 border-brutal-black divide-y-2 divide-brutal-black"
+          >
+            <template
+              x-for="benevole in benevoles.filter(b => {
+                            if (!forcedSearchQuery) return true;
+                            const query = forcedSearchQuery.toLowerCase();
+                            return (b.nom && b.nom.toLowerCase().includes(query)) ||
+                                   (b.prenom && b.prenom.toLowerCase().includes(query)) ||
+                                   (b.email && b.email.toLowerCase().includes(query));
+                        })"
+              :key="benevole.id"
+            >
+              <button
+                @click="selectBenevoleForCagnotte(benevole)"
+                class="w-full text-left p-3 hover:bg-yellow-100 transition-colors flex items-center justify-between font-bold"
+                :class="selectedForcedBenevole?.id === benevole.id ? 'bg-yellow-300' : 'bg-white'"
+              >
+                <div>
+                  <div
+                    class="text-sm font-black text-brutal-black"
+                    x-text="benevole.prenom + ' ' + benevole.nom"
+                  ></div>
+                  <div class="text-xs text-gray-500 font-normal" x-text="benevole.email"></div>
+                </div>
+                <div class="flex items-center gap-2">
+                  <template x-if="benevole.is_cagnotte_forcee">
+                    <span
+                      class="px-2 py-0.5 text-[10px] font-black uppercase text-white bg-brutal-black"
+                    >
+                      FORCÉE (<span
+                        x-text="benevole.cagnotte_forcee_type === 'journee' ? 'Jour' : 'Pér.'"
+                      ></span
+                      >)
+                    </span>
+                  </template>
+                  <span
+                    class="text-xs font-black bg-brutal-ice px-2 py-0.5 border border-brutal-black rounded-sm"
+                    x-text="(benevole.cagnotte_total || 0) + ' D'"
+                  ></span>
+                </div>
+              </button>
+            </template>
+            <div
+              x-show="benevoles.filter(b => {
+                            if (!forcedSearchQuery) return true;
+                            const query = forcedSearchQuery.toLowerCase();
+                            return (b.nom && b.nom.toLowerCase().includes(query)) ||
+                                   (b.prenom && b.prenom.toLowerCase().includes(query)) ||
+                                   (b.email && b.email.toLowerCase().includes(query));
+                        }).length === 0"
+              class="p-4 text-center text-gray-500 italic"
+            >
+              Aucun bénévole trouvé
+            </div>
+          </div>
+        </div>
+
+        <!-- Configuration générale du tarif journée -->
+        <div class="border-4 border-brutal-black bg-brutal-yellow p-6 shadow-brutal-sm">
+          <h3 class="text-xl font-black uppercase mb-3 flex items-center gap-2">
+            <span>⚙️</span> Tarif journée général
+          </h3>
+          <p class="text-xs font-bold text-gray-700 mb-4">
+            Ce tarif sert de référence pour toutes les cagnottes forcées à la journée.
+          </p>
+          <div class="flex items-center gap-3">
+            <div class="relative flex-1">
+              <input
+                type="number"
+                step="0.5"
+                x-model.number="config.tarif_cagnotte_journee"
+                class="brutal-input w-full py-2 px-3 font-mono font-black text-lg text-center"
+                min="0"
+              />
+              <span class="absolute right-3 top-1/2 transform -translate-y-1/2 font-black text-lg"
+                >€</span
+              >
+            </div>
+            <button
+              @click="saveForcedJourneeTarif()"
+              class="brutal-btn bg-brutal-black text-white py-3 px-4 shadow-brutal-sm hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all font-black text-sm uppercase whitespace-nowrap"
+            >
+              💾 Enregistrer
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Colonne de Droite : Paramétrage individuel -->
+      <div class="lg:col-span-7">
+        <!-- État vide : Aucun bénévole sélectionné -->
+        <div
+          x-show="!selectedForcedBenevole"
+          class="border-4 border-dashed border-gray-300 bg-gray-50 p-12 text-center shadow-brutal-sm flex flex-col items-center justify-center min-h-[400px]"
+        >
+          <div class="text-6xl mb-4">👤</div>
+          <h3 class="text-2xl font-black text-gray-400 uppercase">Aucun bénévole sélectionné</h3>
+          <p class="font-bold text-gray-400 mt-2 max-w-sm">
+            Sélectionnez un bénévole dans la liste de gauche pour configurer son forçage de
+            cagnotte.
+          </p>
+        </div>
+
+        <!-- État actif : Bénévole sélectionné -->
+        <div
+          x-show="selectedForcedBenevole"
+          class="border-4 border-brutal-black bg-white p-8 shadow-brutal relative min-h-[400px]"
+          style="display: none"
+        >
+          <div
+            class="absolute -top-4 left-6 bg-white px-4 border-4 border-brutal-black py-1 font-black text-lg uppercase italic shadow-brutal-sm"
+          >
+            Configuration individuelle
+          </div>
+
+          <div class="mt-4 mb-6 pb-6 border-b-2 border-dashed border-gray-200">
+            <div
+              class="text-2xl font-black text-brutal-black"
+              x-text="selectedForcedBenevole?.prenom + ' ' + selectedForcedBenevole?.nom"
+            ></div>
+            <div
+              class="text-sm font-bold text-gray-500 font-mono mt-1"
+              x-text="selectedForcedBenevole?.email"
+            ></div>
+          </div>
+
+          <!-- Formulaire d'édition -->
+          <div class="space-y-6">
+            <!-- Case à cocher : Activer le forçage -->
+            <div class="flex items-center gap-3 bg-gray-50 p-4 border-2 border-brutal-black">
+              <input
+                type="checkbox"
+                id="forced-cagnotte-active"
+                x-model="forcedForm.is_cagnotte_forcee"
+                class="w-6 h-6 accent-brutal-black cursor-pointer border-2 border-brutal-black rounded-sm"
+              />
+              <label
+                for="forced-cagnotte-active"
+                class="font-black text-base cursor-pointer select-none"
+              >
+                Activer le forçage de la cagnotte pour ce bénévole
+              </label>
+            </div>
+
+            <!-- Paramètres avancés si le forçage est actif -->
+            <div x-show="forcedForm.is_cagnotte_forcee" class="space-y-6 pt-2 animate-fadeIn">
+              <!-- Type de forçage -->
+              <div>
+                <label class="block text-xs font-black uppercase text-gray-500 mb-2"
+                  >2. Choisir le type de forçage</label
+                >
+                <div class="grid grid-cols-2 gap-4">
+                  <label
+                    class="flex items-center justify-center gap-3 p-4 border-2 border-brutal-black cursor-pointer font-black transition-colors"
+                    :class="forcedForm.cagnotte_forcee_type === 'journee' ? 'bg-yellow-300 shadow-brutal-sm' : 'bg-white hover:bg-gray-50'"
+                  >
+                    <input
+                      type="radio"
+                      name="forced-type"
+                      value="journee"
+                      x-model="forcedForm.cagnotte_forcee_type"
+                      class="w-4 h-4 accent-brutal-black"
+                    />
+                    ☀️ À la journée
+                  </label>
+                  <label
+                    class="flex items-center justify-center gap-3 p-4 border-2 border-brutal-black cursor-pointer font-black transition-colors"
+                    :class="forcedForm.cagnotte_forcee_type === 'periode' ? 'bg-yellow-300 shadow-brutal-sm' : 'bg-white hover:bg-gray-50'"
+                  >
+                    <input
+                      type="radio"
+                      name="forced-type"
+                      value="periode"
+                      x-model="forcedForm.cagnotte_forcee_type"
+                      class="w-4 h-4 accent-brutal-black"
+                    />
+                    ⏱️ À la période
+                  </label>
+                </div>
+              </div>
+
+              <!-- 3A. Paramètres pour le mode "À la journée" -->
+              <div
+                x-show="forcedForm.cagnotte_forcee_type === 'journee'"
+                class="space-y-4 border-2 border-brutal-black p-6 bg-white shadow-brutal-sm"
+              >
+                <h4
+                  class="font-black uppercase text-sm border-b-2 border-brutal-black pb-2 mb-3 flex items-center justify-between"
+                >
+                  <span>☀️ Choix des journées</span>
+                  <span
+                    class="text-xs text-gray-500 font-bold"
+                    x-text="'Tarif : ' + (config.tarif_cagnotte_journee || 0) + ' € / jour'"
+                  ></span>
+                </h4>
+                <div class="flex flex-col gap-2">
+                  <template x-for="day in visualDays" :key="day">
+                    <label
+                      class="flex items-center gap-3 p-2 hover:bg-gray-50 cursor-pointer font-bold text-sm"
+                    >
+                      <input
+                        type="checkbox"
+                        :value="day"
+                        :checked="forcedForm.cagnotte_forcee_jours.includes(day)"
+                        @change="
+                                                    if ($event.target.checked) {
+                                                        if (!forcedForm.cagnotte_forcee_jours.includes(day)) forcedForm.cagnotte_forcee_jours.push(day);
+                                                    } else {
+                                                        forcedForm.cagnotte_forcee_jours = forcedForm.cagnotte_forcee_jours.filter(d => d !== day);
+                                                    }
+                                                "
+                        class="w-5 h-5 accent-brutal-black border-2 border-brutal-black rounded-sm"
+                      />
+                      <span
+                        x-text="new Date(day + 'T00:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })"
+                      ></span>
+                    </label>
+                  </template>
+                </div>
+                <div
+                  class="pt-4 border-t-2 border-dashed border-gray-200 flex justify-between items-center font-black"
+                >
+                  <span class="text-sm uppercase text-gray-500">Calcul du total</span>
+                  <span
+                    class="text-2xl text-emerald-600 font-mono"
+                    x-text="(forcedForm.cagnotte_forcee_jours.length * parseFloat(config.tarif_cagnotte_journee || 0)).toFixed(2) + ' €'"
+                  ></span>
+                </div>
+              </div>
+
+              <!-- 3B. Paramètres pour le mode "À la période" -->
+              <div
+                x-show="forcedForm.cagnotte_forcee_type === 'periode'"
+                class="space-y-4 border-2 border-brutal-black p-6 bg-white shadow-brutal-sm"
+              >
+                <h4 class="font-black uppercase text-sm border-b-2 border-brutal-black pb-2 mb-3">
+                  ⏱️ Choix des périodes
+                </h4>
+                <div class="flex flex-col gap-2 max-h-[250px] overflow-y-auto pr-2">
+                  <template x-for="p in periodes" :key="p.id">
+                    <label
+                      class="flex items-center justify-between p-2 hover:bg-gray-50 cursor-pointer font-bold text-sm"
+                    >
+                      <div class="flex items-center gap-3">
+                        <input
+                          type="checkbox"
+                          :value="p.id"
+                          :checked="forcedForm.cagnotte_forcee_periodes_ids.includes(p.id)"
+                          @change="
+                                                        if ($event.target.checked) {
+                                                            if (!forcedForm.cagnotte_forcee_periodes_ids.includes(p.id)) forcedForm.cagnotte_forcee_periodes_ids.push(p.id);
+                                                        } else {
+                                                            forcedForm.cagnotte_forcee_periodes_ids = forcedForm.cagnotte_forcee_periodes_ids.filter(id => id !== p.id);
+                                                        }
+                                                    "
+                          class="w-5 h-5 accent-brutal-black border-2 border-brutal-black rounded-sm"
+                        />
+                        <span x-text="p.nom"></span>
+                      </div>
+                      <span
+                        class="font-mono text-emerald-600"
+                        x-text="parseFloat(p.montant_credit || 0).toFixed(2) + ' €'"
+                      ></span>
+                    </label>
+                  </template>
+                </div>
+                <div
+                  class="pt-4 border-t-2 border-dashed border-gray-200 flex justify-between items-center font-black"
+                >
+                  <span class="text-sm uppercase text-gray-500">Calcul du total</span>
+                  <span
+                    class="text-2xl text-emerald-600 font-mono"
+                    x-text="
+                                        periodes
+                                            .filter(p => forcedForm.cagnotte_forcee_periodes_ids.includes(p.id))
+                                            .reduce((sum, p) => sum + parseFloat(p.montant_credit || 0), 0)
+                                            .toFixed(2) + ' €'
+                                    "
+                  ></span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Bouton Enregistrer / Sauvegarder -->
+            <div class="pt-6 border-t-2 border-dashed border-gray-200 flex justify-end gap-3">
+              <button
+                @click="selectedForcedBenevole = null"
+                class="brutal-btn-sm bg-white text-brutal-black border-2 border-brutal-black px-5 py-3 font-bold uppercase hover:bg-gray-100 shadow-brutal-sm hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px]"
+              >
+                Annuler
+              </button>
+              <button
+                @click="saveCagnotteForcee()"
+                class="brutal-btn-sm bg-brutal-black text-white border-2 border-brutal-black px-6 py-3 font-black uppercase hover:bg-gray-800 shadow-brutal-sm hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px]"
+                :disabled="loading"
+              >
+                <span x-show="!loading">💾 Enregistrer</span>
+                <span x-show="loading">⏳...</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section: Cagnottes forcées actives -->
+    <div class="border-t-4 border-brutal-black pt-8 mt-12">
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+        <div class="flex items-center gap-3">
+          <span class="text-3xl">📋</span>
+          <h3 class="text-2xl font-black uppercase tracking-tight">Cagnottes forcées actives</h3>
+          <span
+            class="bg-brutal-black text-white px-3 py-1 font-black text-sm uppercase tracking-wide border-2 border-brutal-black shadow-brutal-sm"
+            x-text="benevoles.filter(b => b.is_cagnotte_forcee).length + ' actives'"
+          ></span>
+        </div>
+        <p class="text-xs font-bold text-gray-500 max-w-md md:text-right">
+          Ces bénévoles bénéficient d'un crédit de cagnotte fixe et personnalisé, indépendamment de
+          leurs inscriptions de planning réelles.
+        </p>
+      </div>
+
+      <!-- État vide -->
+      <template x-if="benevoles.filter(b => b.is_cagnotte_forcee).length === 0">
+        <div
+          class="border-4 border-dashed border-gray-300 bg-gray-50 p-8 text-center shadow-brutal-sm rounded-sm"
+        >
+          <div class="text-4xl mb-2">😴</div>
+          <p class="font-bold text-gray-500">Aucune cagnotte n'est forcée pour le moment.</p>
+        </div>
+      </template>
+
+      <!-- Tableau des cagnottes forcées -->
+      <template x-if="benevoles.filter(b => b.is_cagnotte_forcee).length > 0">
+        <div class="overflow-x-auto border-4 border-brutal-black shadow-brutal bg-white">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr
+                class="border-b-4 border-brutal-black bg-gray-150 text-xs font-black uppercase tracking-wider text-brutal-black"
+              >
+                <th class="py-3 px-4 border-r-2 border-brutal-black">Bénévole</th>
+                <th class="py-3 px-4 border-r-2 border-brutal-black">Type</th>
+                <th class="py-3 px-4 border-r-2 border-brutal-black">Détails / Configuration</th>
+                <th class="py-3 px-4 border-r-2 border-brutal-black text-right">Crédit Matériel</th>
+                <th class="py-3 px-4 text-center">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y-2 divide-brutal-black font-bold">
+              <template x-for="b in benevoles.filter(b => b.is_cagnotte_forcee)" :key="b.id">
+                <tr class="hover:bg-yellow-50/50 transition-colors">
+                  <!-- Bénévole -->
+                  <td class="py-3 px-4 border-r-2 border-brutal-black">
+                    <div
+                      class="text-sm font-black text-brutal-black"
+                      x-text="b.prenom + ' ' + b.nom"
+                    ></div>
+                    <div
+                      class="text-xs text-gray-500 font-mono font-medium mt-0.5"
+                      x-text="b.email"
+                    ></div>
+                  </td>
+
+                  <!-- Type -->
+                  <td class="py-3 px-4 border-r-2 border-brutal-black whitespace-nowrap">
+                    <template x-if="b.cagnotte_forcee_type === 'journee'">
+                      <span
+                        class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-black bg-yellow-200 border-2 border-brutal-black text-yellow-900 shadow-[1px_1px_0px_rgba(0,0,0,1)] uppercase"
+                      >
+                        ☀️ Journée
+                      </span>
+                    </template>
+                    <template x-if="b.cagnotte_forcee_type === 'periode'">
+                      <span
+                        class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-black bg-purple-200 border-2 border-brutal-black text-purple-900 shadow-[1px_1px_0px_rgba(0,0,0,1)] uppercase"
+                      >
+                        ⏱️ Période
+                      </span>
+                    </template>
+                  </td>
+
+                  <!-- Configuration -->
+                  <td class="py-3 px-4 border-r-2 border-brutal-black">
+                    <!-- Mode journée -->
+                    <template x-if="b.cagnotte_forcee_type === 'journee'">
+                      <div>
+                        <div class="text-xs text-gray-600">
+                          Forfait journée coché pour
+                          <span
+                            class="font-black text-brutal-black"
+                            x-text="b.cagnotte_forcee_jours.length + ' jour(s)'"
+                          ></span>
+                          :
+                        </div>
+                        <div class="flex flex-wrap gap-1.5 mt-1.5">
+                          <template x-for="day in b.cagnotte_forcee_jours" :key="day">
+                            <span
+                              class="inline-block text-[10px] font-black uppercase bg-gray-100 border border-brutal-black px-2 py-0.5 rounded-sm"
+                              x-text="new Date(day + 'T00:00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })"
+                            ></span>
+                          </template>
+                        </div>
+                      </div>
+                    </template>
+
+                    <!-- Mode période -->
+                    <template x-if="b.cagnotte_forcee_type === 'periode'">
+                      <div>
+                        <div class="text-xs text-gray-600">
+                          Forfait période coché pour
+                          <span
+                            class="font-black text-brutal-black"
+                            x-text="(b.cagnotte_forcee_periodes_ids || []).length + ' période(s)'"
+                          ></span>
+                          :
+                        </div>
+                        <div class="flex flex-wrap gap-1.5 mt-1.5">
+                          <template
+                            x-for="p in periodes.filter(pr => (b.cagnotte_forcee_periodes_ids || []).includes(pr.id))"
+                            :key="p.id"
+                          >
+                            <span
+                              class="inline-block text-[10px] font-black uppercase bg-purple-50 text-purple-800 border border-purple-300 px-2 py-0.5 rounded-sm"
+                              x-text="p.nom"
+                            ></span>
+                          </template>
+                        </div>
+                      </div>
+                    </template>
+                  </td>
+
+                  <!-- Montant -->
+                  <td class="py-3 px-4 border-r-2 border-brutal-black text-right whitespace-nowrap">
+                    <span
+                      class="inline-block text-base font-mono font-black text-emerald-600 bg-emerald-50 px-2.5 py-1 border border-emerald-300 rounded-sm"
+                      x-text="(b.cagnotte_total || 0).toFixed(2) + ' €'"
+                    ></span>
+                  </td>
+
+                  <!-- Actions -->
+                  <td class="py-3 px-4 text-center whitespace-nowrap">
+                    <div class="flex items-center justify-center gap-2">
+                      <button
+                        @click="selectBenevoleForCagnotte(b); window.scrollTo({ top: 0, behavior: 'smooth' });"
+                        class="brutal-btn-sm bg-white hover:bg-yellow-100 border-2 border-brutal-black px-2.5 py-1 shadow-[2px_2px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all text-xs font-black uppercase flex items-center gap-1"
+                        title="Modifier la configuration"
+                      >
+                        ✏️ Modifier
+                      </button>
+                      <button
+                        @click="revertCagnotteForcee(b)"
+                        class="brutal-btn-sm bg-white hover:bg-red-100 text-brutal-red border-2 border-brutal-black px-2.5 py-1 shadow-[2px_2px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all text-xs font-black uppercase flex items-center gap-1"
+                        title="Annuler le forçage"
+                      >
+                        🗑️ Annuler
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+      </template>
+    </div>
+  </div>
+</div>

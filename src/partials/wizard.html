@@ -1,0 +1,422 @@
+<div
+  x-show="wizardOpen"
+  class="fixed inset-0 z-50 flex items-center justify-center bg-brutal-black/90 backdrop-blur-sm p-4 overflow-y-auto"
+  x-transition.opacity
+  style="display: none"
+>
+  <div class="brutal-card bg-brutal-white w-full max-w-5xl relative flex flex-col max-h-[90vh]">
+    <!-- Header Wizard -->
+    <div
+      class="border-b-4 border-brutal-black p-4 flex justify-between items-center bg-brutal-ice sticky top-0 z-10"
+    >
+      <div>
+        <h2 class="text-2xl font-black uppercase">Assistant d'inscription</h2>
+        <div class="flex items-center gap-2 text-sm font-bold text-gray-600">
+          <span :class="{'text-black underline': wizardStep === 1}">1. Profil</span>
+          <span>→</span>
+          <span :class="{'text-black underline': wizardStep === 2}">2. Choix des Postes</span>
+          <span>→</span>
+          <span :class="{'text-black underline': wizardStep === 3}">3. Confirmation</span>
+        </div>
+      </div>
+      <button
+        @click="closeWizard()"
+        class="brutal-btn p-2 text-xl hover:bg-red-500 hover:text-white transition-colors"
+      >
+        ✕
+      </button>
+    </div>
+
+    <!-- Content Scroller -->
+    <div class="wizard-content-scroller flex-1 overflow-y-auto p-6 bg-gray-50">
+      <!-- STEP 1: PROFIL -->
+      <div x-show="wizardStep === 1" class="text-center max-w-2xl mx-auto">
+        <!-- h3 removed per user request -->
+
+        <!-- NEW: EMBEDDED PROFILE FORM -->
+        <div
+          x-show="profiles.length === 0 || showWizardProfileForm"
+          class="mb-8 p-6 text-left max-w-lg mx-auto bg-white border-2 border-brutal-black shadow-brutal"
+        >
+          <h4
+            class="text-xl font-black mb-4 uppercase bg-yellow-400 inline-block px-2"
+            x-text="wizardProfileForm.id ? 'Modifier Bénévole' : 'Nouveau Bénévole'"
+          ></h4>
+
+          <div class="space-y-3">
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block font-bold mb-1 text-sm">Prénom *</label>
+                <input
+                  type="text"
+                  x-model="wizardProfileForm.prenom"
+                  class="w-full border-2 border-brutal-black p-2 font-bold focus:shadow-brutal focus:outline-none text-sm"
+                />
+              </div>
+              <div>
+                <label class="block font-bold mb-1 text-sm">Nom *</label>
+                <input
+                  type="text"
+                  x-model="wizardProfileForm.nom"
+                  class="w-full border-2 border-brutal-black p-2 font-bold focus:shadow-brutal focus:outline-none text-sm"
+                />
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block font-bold mb-1 text-sm">Téléphone *</label>
+                <input
+                  type="tel"
+                  x-model="wizardProfileForm.telephone"
+                  class="w-full border-2 border-brutal-black p-2 font-bold focus:shadow-brutal focus:outline-none text-sm"
+                />
+              </div>
+              <div x-show="config.tshirt_question_active">
+                <label class="block font-bold mb-1 text-sm">Taille T-Shirt *</label>
+                <select
+                  x-model="wizardProfileForm.taille_tshirt"
+                  :required="config.tshirt_question_active"
+                  class="w-full border-2 border-brutal-black p-2 font-bold focus:shadow-brutal focus:outline-none bg-white text-sm"
+                >
+                  <option value="">Choisir...</option>
+                  <option value="SANS">Sans T-shirt (Non merci)</option>
+                  <option value="XS">XS</option>
+                  <option value="S">S</option>
+                  <option value="M">M</option>
+                  <option value="L">L</option>
+                  <option value="XL">XL</option>
+                  <option value="XXL">XXL</option>
+                </select>
+              </div>
+            </div>
+
+            <template x-if="repasList && repasList.length > 0">
+              <div class="p-3 bg-yellow-50 border-2 border-yellow-400 space-y-3 text-left">
+                <h3 class="font-bold text-sm mb-1">🍽️ Option Repas</h3>
+                <p class="text-xs text-gray-500 font-bold mb-2">
+                  Sélectionnez vos repas. Cochez 🥬 si vous mangez végétarien pour ce repas.
+                </p>
+
+                <div class="grid sm:grid-cols-2 gap-3">
+                  <template x-for="repas in repasList" :key="repas.id">
+                    <div class="p-2 bg-white border-2 border-brutal-black space-y-1.5">
+                      <div class="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          :id="'wizard_repas_' + repas.id"
+                          :checked="isWizardRepasSelected(repas.id)"
+                          @change="toggleWizardRepas(repas.id, $event.target.checked)"
+                          class="w-5 h-5 accent-brutal-black cursor-pointer"
+                        />
+                        <label
+                          :for="'wizard_repas_' + repas.id"
+                          class="font-black cursor-pointer text-sm"
+                          x-text="repas.nom"
+                        ></label>
+                      </div>
+
+                      <!-- Option végé par repas (masquée si désactivée pour ce repas) -->
+                      <div
+                        class="flex items-center gap-2 pl-7"
+                        x-show="repas.question_vege_active !== false && isWizardRepasSelected(repas.id)"
+                      >
+                        <input
+                          type="checkbox"
+                          :id="'wizard_repas_vege_' + repas.id"
+                          :checked="isWizardRepasVege(repas.id)"
+                          @change="setWizardRepasVege(repas.id, $event.target.checked)"
+                          class="w-4 h-4 accent-green-600 cursor-pointer"
+                        />
+                        <label
+                          :for="'wizard_repas_vege_' + repas.id"
+                          class="font-bold cursor-pointer text-xs text-green-800"
+                          >🥬 Repas Végétarien</label
+                        >
+                      </div>
+                    </div>
+                  </template>
+                </div>
+              </div>
+            </template>
+
+            <div
+              class="flex justify-between items-center mt-6 pt-4 border-t-2 border-gray-100 gap-4"
+            >
+              <button
+                x-show="profiles.length > 0"
+                @click="cancelWizardEdit()"
+                class="brutal-btn bg-white text-brutal-black border-2 border-brutal-black px-6 py-2 font-bold shadow-brutal hover:bg-gray-100 uppercase text-sm"
+              >
+                Annuler
+              </button>
+              <button
+                @click="createProfileAndContinue()"
+                class="brutal-btn bg-brutal-black text-brutal-white px-6 py-2 w-full shadow-brutal hover:bg-gray-800 disabled:opacity-50"
+                :class="{'w-auto': profiles.length > 0}"
+                :disabled="loading"
+              >
+                <span
+                  x-show="!loading"
+                  x-text="wizardProfileForm.id ? 'Mettre à jour' : 'Enregistrer & Continuer'"
+                ></span>
+                <span x-show="loading">...</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- NEW: POST-CREATION CHOICES NODAL (Overlay on Step 1) -->
+        <div
+          x-show="showPostCreationModal"
+          class="absolute inset-0 bg-white/95 z-20 flex flex-col items-center justify-center p-8 text-center"
+          x-transition.opacity
+        >
+          <div
+            class="brutal-card bg-brutal-ice p-8 border-4 border-brutal-black shadow-brutal max-w-lg w-full"
+          >
+            <h4
+              class="text-3xl font-black mb-6 uppercase"
+              x-text="modalTitle || 'Profil Créé ! ✅'"
+            ></h4>
+            <p class="font-bold text-xl mb-8">Que souhaitez-vous faire maintenant ?</p>
+
+            <div class="flex flex-col gap-4">
+              <button
+                @click="handlePostProfileCreation('add')"
+                class="brutal-btn bg-white text-brutal-black px-6 py-4 border-2 border-brutal-black font-bold hover:bg-gray-100 flex items-center justify-center gap-2"
+              >
+                <span>➕</span> Ajouter un autre bénévole <br /><span class="text-xs font-normal"
+                  >(ex: conjoint, enfant...)</span
+                >
+              </button>
+
+              <button
+                @click="handlePostProfileCreation('continue')"
+                class="brutal-btn bg-brutal-black text-brutal-white px-6 py-4 font-bold shadow-brutal hover:bg-gray-800 flex items-center justify-center gap-2"
+              >
+                <span>🚀</span> Continuer vers le choix des Postes
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Existing Profiles List -->
+        <div x-show="profiles.length > 0 && !showWizardProfileForm" class="grid gap-4">
+          <p class="font-bold text-xl mb-4">Vos bénévoles enregistrés :</p>
+          <template x-for="profile in profiles" :key="profile.id">
+            <div
+              class="brutal-card p-4 flex flex-col sm:flex-row sm:items-center justify-between bg-white border-2 border-brutal-black mb-4 gap-3"
+            >
+              <span
+                class="font-black text-xl break-all"
+                x-text="profile.prenom + ' ' + profile.nom"
+              ></span>
+              <div class="flex gap-2 w-full sm:w-auto">
+                <button
+                  @click.stop="editWizardProfile(profile.id)"
+                  class="brutal-btn bg-white text-brutal-black border-2 border-brutal-black hover:bg-gray-50 px-3 py-1 font-bold text-sm flex-1 sm:flex-initial flex items-center justify-center gap-2"
+                >
+                  ✏️ Modifier
+                </button>
+                <button
+                  @click.stop="deleteProfile(profile.id)"
+                  class="brutal-btn bg-white text-red-500 border-2 border-red-500 hover:bg-red-50 px-3 py-1 font-bold text-sm flex-1 sm:flex-initial flex items-center justify-center gap-2"
+                >
+                  🗑️ Supprimer
+                </button>
+              </div>
+            </div>
+          </template>
+          <!-- 'Ajouter un autre bénévole' link removed per user request -->
+        </div>
+      </div>
+
+      <!-- STEP 2: PERIODES -->
+      <div x-show="wizardStep === 2">
+        <!-- Titre Période Active -->
+        <div
+          class="mb-6 bg-brutal-black text-brutal-white p-3 rounded-none shadow-brutal-sm text-center"
+        >
+          <h3 class="text-xl font-black uppercase" x-text="getCurrentWizardPeriodName()"></h3>
+        </div>
+
+        <!-- Liste des Postes pour la période active (GROUPÉE) -->
+        <div class="grid gap-6">
+          <template x-for="subgroup in getWizardGroups()" :key="subgroup.id">
+            <div x-data="{ openSub: subgroup.expanded }">
+              <!-- Subgroup Header -->
+              <div
+                @click="openSub = !openSub"
+                class="flex justify-between items-center bg-gray-200 p-3 cursor-pointer select-none border-l-4 border-brutal-black hover:bg-gray-300 transition-colors mb-4"
+              >
+                <h4
+                  class="text-lg font-black uppercase text-brutal-black"
+                  x-text="subgroup.title"
+                ></h4>
+                <div
+                  class="text-xl transform transition-transform duration-300"
+                  :class="openSub ? 'rotate-180' : ''"
+                >
+                  ▼
+                </div>
+              </div>
+
+              <!-- Posts inside Subgroup -->
+              <div class="grid gap-6 pl-0 md:pl-2" x-show="openSub" x-transition>
+                <template x-for="poste in subgroup.postes" :key="poste.poste_id">
+                  <div class="wizard-card-wrapper">
+                    <%- include('components/post-card-details.html') %>
+                  </div>
+                </template>
+              </div>
+            </div>
+          </template>
+
+          <div
+            x-show="getWizardGroups().length === 0"
+            class="text-center py-12 italic text-gray-500"
+          >
+            Aucun poste disponible pour cette période.
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 3: CONFIRMATION -->
+      <div x-show="wizardStep === 3" class="max-w-3xl mx-auto">
+        <h3 class="text-3xl font-black mb-8 text-center">Récapitulatif de vos choix</h3>
+
+        <!-- Step 3 Content: Summary -->
+        <div class="bg-white border-2 border-brutal-black p-6 shadow-brutal mb-8">
+          <!-- ADDITIONS -->
+          <template x-if="wizardSelections.length > 0">
+            <div class="mb-4">
+              <h4 class="font-bold uppercase text-green-600 border-b-2 border-green-600 mb-2">
+                À Ajouter
+              </h4>
+              <div class="grid gap-4">
+                <template x-for="selection in wizardSelections" :key="selection.key">
+                  <div class="flex justify-between items-center border-b border-gray-100 pb-2">
+                    <div>
+                      <p class="font-black" x-text="selection.posteTitle"></p>
+                      <p class="text-sm text-gray-600">
+                        <span x-text="formatDate(selection.debut)"></span> •
+                        <span x-text="formatTime(selection.debut)"></span> -
+                        <span x-text="formatTime(selection.fin)"></span>
+                      </p>
+                      <p class="text-xs font-bold text-blue-600 mt-1">
+                        👤 pour <span x-text="selection.profileName"></span>
+                      </p>
+                    </div>
+                    <button
+                      @click="wizardUnregister(selection.posteId, selection.profileId)"
+                      class="text-red-500 font-bold hover:underline text-sm"
+                    >
+                      Annuler
+                    </button>
+                  </div>
+                </template>
+              </div>
+            </div>
+          </template>
+
+          <!-- REMOVALS -->
+          <template x-if="wizardRemovals.length > 0">
+            <div>
+              <h4 class="font-bold uppercase text-red-600 border-b-2 border-red-600 mb-2">
+                À Supprimer
+              </h4>
+              <div class="grid gap-4">
+                <template x-for="rem in getRemovalDetailsList()" :key="rem.key">
+                  <div
+                    class="flex justify-between items-center border-b border-gray-100 pb-2 bg-red-50 p-2"
+                  >
+                    <div>
+                      <p class="font-black line-through text-gray-500" x-text="rem.posteTitle"></p>
+                      <p class="text-sm text-gray-400">
+                        <span x-text="formatDate(rem.debut)"></span>
+                      </p>
+                      <p class="text-xs font-bold text-gray-500 mt-1">
+                        👤 <span x-text="rem.profileName"></span>
+                      </p>
+                    </div>
+                    <!-- Update logic: Filter array instead of .delete() -->
+                    <button
+                      @click="wizardRemovals = wizardRemovals.filter(k => k !== rem.key); loadPostes()"
+                      class="text-green-600 font-bold hover:underline text-sm"
+                    >
+                      Restaurer
+                    </button>
+                  </div>
+                </template>
+              </div>
+            </div>
+          </template>
+
+          <template x-if="wizardSelections.length === 0 && wizardRemovals.length === 0">
+            <p class="text-center italic text-gray-500">Aucun changement pour le moment.</p>
+          </template>
+        </div>
+
+        <div class="text-center">
+          <p class="mb-4 font-bold">Tout est bon pour vous ?</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer Navigation -->
+    <div
+      class="border-t-4 border-brutal-black p-4 bg-gray-100 flex justify-between items-center sticky bottom-0 z-10"
+    >
+      <div class="flex gap-2">
+        <button
+          x-show="wizardStep > 1"
+          @click="wizardStep === 2 && wizardPeriodIndex > 0 ? prevPeriod() : wizardStep--"
+          class="brutal-btn bg-white px-6 py-3 border-2 border-brutal-black font-bold"
+        >
+          Retour
+        </button>
+      </div>
+
+      <div>
+        <!-- Step 1 Next -->
+        <button
+          x-show="wizardStep === 1 && profiles.length > 0 && !showWizardProfileForm"
+          @click="modalTitle = 'C\'est parti !'; showPostCreationModal = true"
+          class="brutal-btn bg-brutal-black text-brutal-white px-8 py-3 font-bold shadow-brutal disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Continuer →
+        </button>
+
+        <!-- Step 2 Next Period -->
+        <button
+          x-show="wizardStep === 2 && (getWizardPeriods() && wizardPeriodIndex < getWizardPeriods().length - 1)"
+          @click="nextPeriod()"
+          class="brutal-btn bg-brutal-black text-brutal-white px-8 py-3 font-bold shadow-brutal"
+        >
+          Suivant →
+        </button>
+
+        <!-- Step 2 Next -> Validate (Last Period) -->
+        <button
+          x-show="wizardStep === 2 && (getWizardPeriods() && wizardPeriodIndex >= getWizardPeriods().length - 1)"
+          @click="wizardStep = 3; scrollWizardToTop()"
+          class="brutal-btn bg-yellow-400 text-black px-8 py-3 font-bold shadow-brutal border-2 border-black"
+        >
+          Vérifier et Valider (<span x-text="wizardSelections.length + wizardRemovals.length"></span
+          >)
+        </button>
+
+        <!-- Step 3 Submit -->
+        <button
+          x-show="wizardStep === 3"
+          @click="submitWizard()"
+          class="brutal-btn bg-green-500 text-white px-8 py-3 font-bold shadow-brutal border-2 border-black disabled:opacity-50"
+          :disabled="(wizardSelections.length === 0 && wizardRemovals.length === 0) || loading"
+        >
+          <span x-show="!loading">Valider mes inscriptions 🎉</span>
+          <span x-show="loading">Validation...</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

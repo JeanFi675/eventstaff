@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+
+# Environment variables (ne jamais committer de vraies clés)
+.env
+.env.local
+.env.*.local
+
+# Build outputs
+dist/
+build/
+*.log
+
+# Supabase (état local / temporaire)
+.supabase/
+supabase/.temp/
+supabase/.branches/
+
+# IDE / OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db

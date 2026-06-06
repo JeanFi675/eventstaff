@@ -1,0 +1,78 @@
+<!-- Section Authentification -->
+<template x-if="!user">
+  <section class="mb-12">
+    <div class="max-w-md mx-auto">
+      <div class="brutal-card bg-brutal-white p-8">
+        <h2 class="text-3xl font-black mb-6">Connexion</h2>
+
+        <!-- Étape 1 : Demande de code -->
+        <form @submit.prevent="requestOtp()" x-show="step === 1">
+          <div class="mb-4">
+            <label for="email" class="block font-bold mb-2 text-lg">Votre email</label>
+            <input
+              type="email"
+              id="email"
+              x-model="loginEmail"
+              required
+              placeholder="jean.dupont@example.com"
+              class="brutal-input w-full px-4 py-3 text-lg"
+            />
+          </div>
+
+          <button
+            type="submit"
+            :disabled="loading"
+            class="brutal-btn bg-brutal-ice w-full py-4 text-xl shadow-brutal mt-4 font-bold"
+          >
+            <span x-show="!loading">📧 Recevoir le code</span>
+            <span x-show="loading" x-cloak>⏳ Envoi en cours...</span>
+          </button>
+
+          <p class="mt-4 text-sm text-center">
+            Vous recevrez un email contenant un code à 6 chiffres pour vous connecter en toute
+            sécurité.
+          </p>
+        </form>
+
+        <!-- Étape 2 : Saisie du code -->
+        <form @submit.prevent="verifyOtp()" x-show="step === 2" x-cloak>
+          <div class="mb-4">
+            <label for="otp" class="block font-bold mb-2 text-lg">Code à 6 chiffres</label>
+            <p class="text-sm mb-4">
+              Envoyé à: <span class="font-bold" x-text="loginEmail"></span>
+            </p>
+            <input
+              type="text"
+              id="otp"
+              x-model="otpCode"
+              required
+              pattern="\d{6}"
+              maxlength="6"
+              placeholder="123456"
+              class="brutal-input w-full px-4 py-3 text-center tracking-[0.5em] font-mono text-2xl"
+            />
+          </div>
+
+          <button
+            type="submit"
+            :disabled="loading"
+            class="brutal-btn bg-yellow-400 w-full py-4 text-xl shadow-brutal mt-4 font-bold border-2 border-brutal-black"
+          >
+            <span x-show="!loading">🔐 Se connecter</span>
+            <span x-show="loading" x-cloak>⏳ Vérification...</span>
+          </button>
+
+          <div class="mt-4 flex flex-col gap-2 items-center">
+            <button
+              type="button"
+              @click="step = 1; otpCode = ''"
+              class="text-sm underline hover:font-bold"
+            >
+              Modifier l'adresse email
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </section>
+</template>

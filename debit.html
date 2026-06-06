@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="fr" class="bg-black">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paiement Cagnotte - Appel Bénévoles</title>
+
+    <!-- Sécurité : CSP en <meta> (GitHub Pages n'autorise pas les en-têtes HTTP custom).
+         Variante stricte alignée sur src/partials/layout/head.html (Tailwind compilé, plus de CDN). -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' <%- cspConnectSrc %>; object-src 'none'; base-uri 'self'; form-action 'self'"
+    />
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+
+    <!-- Tailwind compilé via src/styles/main.css (importé par src/js/debit.js) -->
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+</head>
+<body x-data="debitApp" class="h-screen flex flex-col items-center justify-center p-4">
+    <main class="w-full flex flex-col items-center justify-center flex-1">
+
+    <!-- Loading State -->
+    <div x-show="loading" class="text-center animate-pulse">
+        <h1 class="text-2xl font-bold text-yellow-400">Chargement...</h1>
+    </div>
+
+    <!-- Error State -->
+    <div x-show="!loading && error" class="text-center max-w-md">
+        <div class="text-6xl mb-4">⚠️</div>
+        <h1 class="text-xl font-bold text-red-500 mb-2" x-text="error"></h1>
+        <p class="text-gray-400">Le QR Code est peut-être invalide.</p>
+    </div>
+
+    <!-- Main Payment Interface -->
+    <div x-show="!loading && !error && !success" class="w-full max-w-md flex flex-col h-full justify-between" style="display: none;">
+        
+        <!-- Header Info -->
+        <div class="text-center mt-4">
+            <p class="text-gray-500 uppercase text-xs tracking-widest mb-1">Paiement pour</p>
+            <h1 class="text-3xl font-bold text-white mb-2" x-text="`${benevole?.prenom} ${benevole?.nom}`"></h1>
+            <div class="inline-block bg-gray-800 px-4 py-2 rounded-full border border-gray-600">
+                <span class="text-gray-400 text-sm mr-2">Solde:</span>
+                <span class="font-bold text-lg" :class="benevole?.solde < 0 ? 'text-red-500' : 'text-green-400'" x-text="formatMoney(benevole?.solde)"></span>
+            </div>
+        </div>
+
+        <!-- Amount Display -->
+        <div class="my-6 text-center">
+            <div class="text-6xl font-bold text-yellow-400 mb-2 break-all" x-text="currentAmount ? formatMoney(currentAmount) : '0,00 €'"></div>
+            <p class="text-sm text-gray-500" x-text="currentAmount > (benevole?.solde || 0) ? '⚠️ Solde insuffisant (Appoint requis)' : 'Débit Cagnotte'"></p>
+        </div>
+
+        <!-- Numpad -->
+        <div class="grid grid-cols-3 gap-3 mb-6 flex-1 max-h-[400px]">
+            <template x-for="n in [1,2,3,4,5,6,7,8,9]" :key="n">
+                <button @click="appendDigit(n)" class="brutal-btn bg-gray-800 text-white p-4 text-3xl font-bold rounded hover:bg-gray-700 border-b-4 border-black active:border-b-0">
+                    <span x-text="n"></span>
+                </button>
+            </template>
+            <button @click="clearAmount()" class="brutal-btn bg-red-900 text-red-200 p-4 font-bold rounded border-b-4 border-black active:border-b-0">C</button>
+            <button @click="appendDigit(0)" class="brutal-btn bg-gray-800 text-white p-4 text-3xl font-bold rounded border-b-4 border-black active:border-b-0">0</button>
+            <button @click="appendDecimal()" class="brutal-btn bg-gray-800 text-white p-4 text-3xl font-bold rounded border-b-4 border-black active:border-b-0">.</button>
+        </div>
+
+        <!-- Validate Button -->
+        <button @click="processPayment()" 
+            class="w-full py-5 text-2xl font-black text-black bg-yellow-400 hover:bg-yellow-300 rounded-lg border-b-4 border-yellow-600 disabled:opacity-50 disabled:cursor-not-allowed transform active:translate-y-1 mb-safe"
+            :disabled="!isValidAmount()">
+            PAYER <span x-text="currentAmount ? formatMoney(currentAmount) : ''"></span>
+        </button>
+    </div>
+
+    <!-- Success State -->
+    <div x-show="success" class="text-center w-full max-w-md mt-10" style="display: none;">
+        
+        <!-- Case 1: Full Payment -->
+        <template x-if="remainderToPay == 0">
+            <div>
+                <div class="w-24 h-24 bg-green-500 rounded-full flex items-center justify-center text-5xl mb-6 border-4 border-white mx-auto animate-bounce">✓</div>
+                <h2 class="text-4xl font-bold text-white mb-2">Paiement Validé</h2>
+                <p class="text-2xl text-yellow-400 mb-8" x-text="formatMoney(debitedAmount)"></p>
+            </div>
+        </template>
+
+        <!-- Case 2: Partial Payment -->
+        <template x-if="remainderToPay > 0">
+            <div class="bg-red-900/50 p-6 rounded-xl border-4 border-red-500 mb-8 animate-pulse">
+                <h2 class="text-3xl font-black text-white mb-4 uppercase">Reste à Payer</h2>
+                <p class="text-6xl font-black text-red-500 bg-white inline-block px-6 py-2 rounded-lg transform -rotate-2" x-text="formatMoney(remainderToPay)"></p>
+                <p class="text-white mt-4 font-bold">Encaissez ce montant en espèces/CB</p>
+                <p class="text-xs text-red-300 mt-2">(Cagnotte vide, débitée de <span x-text="formatMoney(debitedAmount)"></span>)</p>
+            </div>
+        </template>
+        
+        <div class="bg-gray-800 p-6 rounded-lg w-full mb-8 text-left border border-gray-600">
+            <div class="flex justify-between mb-2">
+                <span class="text-gray-400">Nouveau Solde :</span>
+                <span class="font-bold text-white text-xl" x-text="formatMoney(newBalance)"></span>
+            </div>
+            <div class="text-center mt-4 pt-4 border-t border-gray-700">
+                <p class="text-gray-500 text-sm">Merci !</p>
+            </div>
+        </div>
+
+        <button @click="window.close()" class="text-gray-500 underline mt-4">Fermer la page</button>
+    </div>
+
+    </main>
+    <script type="module" src="/src/js/debit.js"></script>
+</body>
+</html>

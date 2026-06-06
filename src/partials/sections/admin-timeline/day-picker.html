@@ -1,0 +1,17 @@
+<!-- Sélecteur de jour -->
+<div class="brutal-card bg-brutal-white p-8 border-4 border-brutal-black shadow-brutal">
+  <h2 class="text-2xl font-black uppercase mb-6">Choisir un jour</h2>
+  <div class="flex flex-wrap gap-4">
+    <template x-for="day in availableDays" :key="day">
+      <button
+        @click="selectDay(day)"
+        class="brutal-btn px-6 py-4 border-4 border-brutal-black shadow-brutal font-black text-lg capitalize"
+        :class="selectedDay === day ? 'bg-brutal-black text-brutal-white' : 'bg-brutal-ice hover:bg-yellow-300'"
+        x-text="formatDay(day)"
+      ></button>
+    </template>
+    <div x-show="availableDays.length === 0" class="text-gray-500 italic font-bold">
+      Aucun poste trouvé en base.
+    </div>
+  </div>
+</div>

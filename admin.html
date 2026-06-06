@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="fr">
+  <%- include('/src/partials/layout/head.html', { title: 'Administration - Appel aux Bénévoles' })
+  %>
+
+  <!-- Pas de x-init="init()" : Alpine appelle automatiquement la méthode init() du composant.
+       L'ajouter ici la déclencherait deux fois (double chargement des données). -->
+  <body class="bg-brutal-ice min-h-screen" x-data="adminApp()">
+    <%- include('/src/partials/components/toast.html') %> <%-
+    include('/src/partials/components/confirm-modal.html') %>
+
+    <!-- Header -->
+    <header class="bg-brutal-black text-brutal-white py-6 mb-6 border-b-4 border-brutal-black">
+      <div class="container mx-auto px-4">
+        <div class="flex justify-between items-start md:items-center flex-col md:flex-row gap-4">
+          <div>
+            <h1 class="text-3xl font-black tracking-tight">🔐 ADMIN PANEL</h1>
+            <p class="text-xl font-body mt-2">Gestion des bénévoles et postes</p>
+          </div>
+          <div class="flex flex-wrap gap-2 text-sm font-bold">
+            <a
+              href="admin-connexions.html"
+              class="brutal-btn bg-brutal-white text-brutal-black px-3 py-2 border-2 border-brutal-black shadow-brutal-sm flex items-center gap-2"
+            >
+              🔌 Connexions
+            </a>
+
+            <a
+              href="index.html"
+              class="brutal-btn bg-brutal-ice text-brutal-black px-3 py-2 border-2 border-transparent shadow-brutal-sm flex items-center gap-2"
+            >
+              ← Retour
+            </a>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="container mx-auto px-4 pb-12">
+      <!-- Access Denied -->
+      <div
+        x-show="!isAdmin && !loading"
+        class="brutal-card bg-brutal-white p-8 max-w-2xl mx-auto text-center"
+      >
+        <h2 class="text-3xl font-black mb-4">🚫 Accès refusé</h2>
+        <p class="text-lg font-bold mb-6">Vous n'avez pas les droits d'administrateur.</p>
+        <a href="index.html" class="brutal-btn bg-brutal-ice px-6 py-3 shadow-brutal inline-block">
+          Retour à l'accueil
+        </a>
+      </div>
+
+      <!-- Loading -->
+      <div x-show="loading" class="brutal-card bg-brutal-white p-8 max-w-2xl mx-auto text-center">
+        <p x-show="!isAdmin" class="text-2xl font-black">⏳ Vérification des droits...</p>
+        <p x-show="isAdmin" class="text-2xl font-black">⏳ Chargement des données...</p>
+      </div>
+
+      <!-- Admin Interface -->
+      <div x-show="isAdmin && !loading" style="display: none">
+        <%- include('/src/partials/sections/admin/tabs.html') %> <%-
+        include('/src/partials/sections/admin/tab-visual-creator.html') %> <%-
+        include('/src/partials/sections/admin/tab-referents.html') %> <%-
+        include('/src/partials/sections/admin/tab-benevoles.html') %> <%-
+        include('/src/partials/sections/admin/tab-cagnotte-forcee.html') %> <%-
+        include('/src/partials/sections/admin/tab-mailing.html') %> <%-
+        include('/src/partials/sections/admin/tab-recap.html') %> <%-
+        include('/src/partials/sections/admin/tab-heures.html') %>
+      </div>
+    </main>
+
+    <!-- Main Application Logic -->
+    <script type="module" src="./src/js/admin.js"></script>
+  </body>
+</html>

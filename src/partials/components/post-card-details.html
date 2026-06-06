@@ -1,0 +1,152 @@
+<!-- VUE NORMALE -->
+<div
+  class="brutal-card p-4"
+  :class="isUserRegistered(poste.poste_id) ? 'bg-green-50' : 'bg-brutal-white'"
+>
+  <!-- Titre, Horaires et Référent -->
+  <div class="mb-4 flex flex-col md:flex-row md:items-center md:gap-6">
+    <h4 class="text-xl font-black" x-text="poste.titre"></h4>
+    <p class="text-base font-bold text-gray-700">
+      📅 <span x-text="formatDate(poste.periode_debut)"></span>
+      -
+      <span x-text="formatTime(poste.periode_debut)"></span>
+      à
+      <span x-text="formatTime(poste.periode_fin)"></span>
+    </p>
+
+    <div x-show="poste.referent_nom" class="md:ml-auto">
+      <p class="font-bold">👤 Référent : <span x-text="poste.referent_nom"></span></p>
+    </div>
+  </div>
+
+  <!-- Description -->
+  <div x-show="poste.description" class="mb-4 p-3 bg-gray-100 border-2 border-brutal-black">
+    <p class="font-bold" x-text="poste.description"></p>
+  </div>
+
+  <!-- Barre de progression -->
+  <div class="mb-4">
+    <div class="flex justify-between mb-8">
+      <span class="font-bold">Inscrits</span>
+      <span class="font-black" x-text="poste.inscrits_actuels + ' / ' + poste.nb_max"></span>
+    </div>
+
+    <div class="progress-bar relative overflow-visible">
+      <div
+        class="progress-fill"
+        :class="{
+                'bg-red-500': poste.inscrits_actuels < (poste.nb_min || 0),
+                'bg-green-400': poste.inscrits_actuels >= (poste.nb_min || 0) && poste.inscrits_actuels < poste.nb_max,
+                'bg-green-700': poste.inscrits_actuels >= poste.nb_max
+            }"
+        :style="'width: ' + ((poste.inscrits_actuels / poste.nb_max) * 100) + '%'"
+      ></div>
+
+      <!-- Mini Marker -->
+      <div
+        x-show="poste.nb_min > 0"
+        class="absolute top-0 bottom-0 w-0.5 bg-black z-10"
+        :style="'left: ' + ((poste.nb_min / poste.nb_max) * 100) + '%'"
+      >
+        <div
+          class="absolute -top-6 left-1/2 transform -translate-x-1/2 text-xs font-bold whitespace-nowrap"
+        >
+          Mini : <span x-text="poste.nb_min"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Liste des bénévoles inscrits (Global ou Perso) -->
+  <div class="mb-4">
+    <!-- Cas 1: Vue "Mes inscriptions" -> Afficher uniquement mes profils inscrits -->
+
+    <!-- Cas 2: Vue normale -> Afficher tous les inscrits (anonymisés ou non selon logique backend) -->
+    <template x-if="!showMyInscriptions || wizardOpen">
+      <div x-show="poste.liste_benevoles && poste.liste_benevoles.length > 0">
+        <p class="font-bold mb-2">Bénévoles inscrits :</p>
+        <div class="flex flex-wrap gap-2">
+          <template x-for="(benevole, index) in poste.liste_benevoles" :key="index">
+            <span
+              class="px-3 py-1 bg-brutal-black text-brutal-white font-bold text-sm border-2 border-brutal-black"
+            >
+              <span x-text="benevole"></span>
+            </span>
+          </template>
+        </div>
+      </div>
+    </template>
+  </div>
+
+  <!-- Actions - Visible uniquement dans le Wizard -->
+  <template x-if="wizardOpen">
+    <div class="flex flex-col sm:flex-row gap-4 mt-6">
+      <!-- Si l'utilisateur a des profils, on affiche un bouton par profil -->
+      <div x-show="profiles.length > 0" class="flex flex-wrap gap-3">
+        <template x-for="profile in profiles" :key="profile.id">
+          <div class="inline-block">
+            <!-- Bouton normal (Inscrire / Désinscrire) -->
+            <button
+              x-show="isProfileRegistered(poste.poste_id, profile.id) || (!hasTimeConflict(poste, profile.id) && poste.inscrits_actuels < poste.nb_max)"
+              @click="isProfileRegistered(poste.poste_id, profile.id) 
+                                ? unregister(poste.poste_id, profile.id) 
+                                : register(poste.poste_id, profile.id)"
+              class="brutal-btn px-6 py-2 font-bold shadow-brutal-sm transition-all active:scale-95"
+              :class="isProfileRegistered(poste.poste_id, profile.id) 
+                                ? 'bg-red-500 text-white border-red-700' 
+                                : 'bg-brutal-ice text-brutal-black'"
+            >
+              <span
+                x-text="
+                                isProfileRegistered(poste.poste_id, profile.id)
+                                    ? (profiles.length > 1 ? 'Désinscrire ' + profile.prenom : 'Se désinscrire')
+                                    : (profiles.length > 1 ? 'Inscrire ' + profile.prenom : 'S\'inscrire')
+                            "
+              ></span>
+            </button>
+
+            <!-- Bouton Conflit -->
+            <button
+              x-show="!isProfileRegistered(poste.poste_id, profile.id) && hasTimeConflict(poste, profile.id)"
+              disabled
+              class="brutal-btn px-4 py-1 font-bold border-2 border-gray-400 bg-gray-200 text-gray-500 cursor-not-allowed opacity-70 flex flex-col items-center leading-tight"
+            >
+              <span class="line-through" x-text="profile.prenom"></span>
+              <span class="text-[10px]">Créneau pris</span>
+            </button>
+
+            <!-- Bouton Complet -->
+            <button
+              x-show="!isProfileRegistered(poste.poste_id, profile.id) && !hasTimeConflict(poste, profile.id) && poste.inscrits_actuels >= poste.nb_max"
+              disabled
+              class="brutal-btn px-4 py-1 font-bold border-2 border-gray-400 bg-gray-200 text-gray-500 cursor-not-allowed opacity-70 flex flex-col items-center leading-tight"
+            >
+              <span x-text="profile.prenom"></span>
+              <span class="text-[10px]">Créneau complet</span>
+            </button>
+          </div>
+        </template>
+      </div>
+
+      <!-- Si aucun profil, message -->
+      <p x-show="profiles.length === 0" class="text-red-600 font-bold italic">
+        Créez un profil bénévole pour vous inscrire.
+      </p>
+    </div>
+  </template>
+
+  <!-- Affichage Lecture Seule (Hors Wizard) -->
+  <template x-if="!wizardOpen">
+    <div class="mt-4 flex flex-wrap gap-2">
+      <template x-for="profile in profiles" :key="profile.id">
+        <div
+          x-show="isProfileRegistered(poste.poste_id, profile.id)"
+          class="inline-flex items-center gap-2 px-3 py-1 bg-green-100 border-2 border-green-600 text-green-800 font-bold rounded-full text-sm"
+        >
+          <span>✅</span>
+          <span x-text="profile.prenom"></span>
+        </div>
+      </template>
+    </div>
+  </template>
+</div>
