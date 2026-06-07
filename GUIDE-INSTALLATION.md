@@ -28,7 +28,7 @@ Ce guide t'accompagne **de A à Z** pour mettre en ligne ton propre site de gest
 5. **Configurer la connexion & les emails** — code à 6 chiffres, SMTP, modèle d'email
 6. **Mettre le site en ligne** — secrets GitHub + activation des Pages
 7. **Première connexion + devenir admin**
-8. _(Avancé, optionnel)_ Edge Functions — emails de planning
+8. **Activer les emails & la création de comptes** — Edge Functions (dans le navigateur)
 9. **Configurer ton événement** depuis l'admin
 
 ---
@@ -83,7 +83,7 @@ Supabase est la « base de données » : elle stocke les bénévoles, les postes
 1. Clique sur **« New project »**.
 2. Renseigne :
    - **Name** : ce que tu veux (ex. `benevoles-festival`).
-   - **Database Password** : clique sur **« Generate a password »** puis 👉 **NOTE-LE précieusement**. Tu en auras besoin pour les options avancées (Partie 8). Tu ne pourras pas le revoir ensuite.
+   - **Database Password** : clique sur **« Generate a password »** puis 👉 **NOTE-LE précieusement** et garde-le en lieu sûr (utile si tu dois un jour te connecter directement à la base). Tu ne pourras pas le revoir ensuite.
    - **Region** : choisis la plus proche de tes utilisateurs (ex. **West EU (Paris)** ou **Frankfurt**).
 3. Clique sur **« Create new project »** et **patiente ~2 minutes** (Supabase prépare ta base).
 
@@ -420,58 +420,50 @@ where email = 'ton.email@exemple.com';
 
 ---
 
-# Partie 8 — (Avancé, optionnel) Emails de planning & création de comptes
+# Partie 8 — Activer les emails de planning & la création de comptes
 
-Cette partie active deux fonctionnalités **facultatives** :
+Cette partie installe les deux **« Edge Functions »** (petits programmes côté serveur) qui complètent l'outil :
 
-- l'**envoi du planning** par email à un bénévole (`send-planning`) ;
-- la **création de comptes bénévoles directement depuis l'admin** (`create-benevole`).
+- **`send-planning`** — envoie à un bénévole son **planning personnalisé** par email ;
+- **`create-benevole`** — permet à un admin de **créer un compte bénévole** directement depuis l'interface d'admin.
 
-> ℹ️ **Tu peux ignorer cette partie au début.** Sans elle, tes bénévoles peuvent quand même se connecter eux-mêmes (par code à 6 chiffres) et s'inscrire aux postes. Reviens-y quand tu voudras envoyer des plannings par email.
+> ✅ **Tout se fait dans le navigateur**, depuis le tableau de bord Supabase — **aucun terminal ni outil à installer.**
 
-Ces « Edge Functions » sont de petits programmes qui tournent côté serveur. Leur installation demande quelques commandes dans un **terminal** — c'est la seule étape un peu technique.
+### 8.1 Créer la fonction `send-planning`
 
-### 8.1 Installer les outils
+1. Dans Supabase, menu de gauche → **« Edge Functions »**.
+2. Clique sur **« Deploy a new function »** (ou **« Create a function »**), puis choisis l'option **« Via Editor »** (l'éditeur de code dans le navigateur).
+3. **Nom de la fonction** : saisis exactement `send-planning`.
+4. Dans ton dépôt GitHub, ouvre le fichier **`supabase/functions/send-planning/index.ts`** et clique sur **« Copy raw file »** (copie **tout** le contenu).
+5. Dans l'éditeur Supabase, **efface le code d'exemple** affiché et **colle** le contenu copié à la place.
+6. Clique sur **« Deploy »** (en haut à droite). Patiente quelques secondes : la fonction passe à l'état **déployé** ✅.
 
-- **Supabase CLI** : suis https://supabase.com/docs/guides/cli (installation en 1 commande selon ton système).
-- **Deno** : suis https://deno.com (nécessaire à la CLI pour ces fonctions).
+### 8.2 Créer la fonction `create-benevole`
 
-### 8.2 Se connecter et relier ton projet
+Refais **exactement** les mêmes étapes que la 8.1, mais avec :
 
-Ouvre un terminal **dans le dossier du projet** (récupéré via `git clone` de ton fork) :
+- **Nom** : `create-benevole`
+- **Code** : le contenu de **`supabase/functions/create-benevole/index.ts`**
 
-```bash
-supabase login
-supabase link --project-ref TON-REF-PROJET
-```
+### 8.3 Renseigner les secrets (accès SMTP)
 
-> `TON-REF-PROJET` est l'identifiant de ton projet (visible dans l'URL Supabase et dans _Project Settings → General_).
+La fonction `send-planning` envoie les emails via **ton service SMTP** (le même qu'en Partie 5.2). Il faut lui transmettre ces accès sous forme de **secrets** :
 
-### 8.3 Déployer les fonctions
+1. Toujours dans **« Edge Functions »**, ouvre la section **« Secrets »** (ou _Project Settings → Edge Functions_).
+2. Ajoute ces **quatre** secrets (bouton **« Add new secret »**), un par un :
 
-```bash
-supabase functions deploy send-planning
-supabase functions deploy create-benevole
-```
+| Nom (exactement) | Valeur (exemple Brevo)     |
+| ---------------- | -------------------------- |
+| `SMTP_HOST`      | `smtp-relay.brevo.com`     |
+| `SMTP_PORT`      | `587`                      |
+| `SMTP_USER`      | ton identifiant SMTP       |
+| `SMTP_PASS`      | ta clé / mot de passe SMTP |
 
-### 8.4 Donner au serveur les accès SMTP
+3. **Enregistre**.
 
-Ces fonctions envoient des emails via **leur propre** configuration SMTP (indépendante de la Partie 5.2). Renseigne-la :
-
-```bash
-supabase secrets set SMTP_HOST=smtp-relay.brevo.com
-supabase secrets set SMTP_PORT=587
-supabase secrets set SMTP_USER=ton-identifiant-smtp
-supabase secrets set SMTP_PASS=ta-cle-smtp
-```
-
-Vérifie :
-
-```bash
-supabase secrets list
-```
-
-> ✅ `SUPABASE_SERVICE_ROLE_KEY` est fourni **automatiquement** à ces fonctions par Supabase — **ne le configure pas** à la main et ne le mets **jamais** ailleurs.
+> ✅ Les clés `SUPABASE_URL`, `SUPABASE_ANON_KEY` et `SUPABASE_SERVICE_ROLE_KEY` sont fournies **automatiquement** par Supabase à tes fonctions — **ne les ajoute pas** à la main, et ne mets **jamais** la `service_role` ailleurs.
+>
+> 💡 Tu peux reprendre **exactement les mêmes identifiants SMTP** que ceux saisis en Partie 5.2.
 
 ---
 
@@ -531,7 +523,7 @@ Ton site est prêt à recevoir des inscriptions. 🙌
 | Adresse du site (`…github.io/…/`) | Supabase (URL Config) + secret GitHub |
 | Project URL Supabase              | Secret `VITE_SUPABASE_URL`            |
 | Clé `anon public` Supabase        | Secret `VITE_SUPABASE_ANON_KEY`       |
-| Mot de passe base de données      | Options avancées (CLI)                |
+| Mot de passe base de données      | Connexion directe à la base (rare)    |
 | Identifiants SMTP                 | Envoi des emails (Parties 5.2 et 8)   |
 
 Besoin d'aller plus loin sur la technique ? Vois [`README.md`](README.md), [`ARCHITECTURE.md`](ARCHITECTURE.md) et [`DATABASE.md`](DATABASE.md).

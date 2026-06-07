@@ -1,4 +1,4 @@
-# Architecture — appel-benevoles
+# Architecture — EventStaff
 
 Document de référence décrivant l'architecture **réelle** du projet : ce qui existe aujourd'hui. Les limitations connues sont signalées en section 4.
 
@@ -123,20 +123,15 @@ Toute la logique backend critique (autorisations, contraintes métier) vit dans 
 | `alpinejs`              | ^3.13.3 | Réactivité DOM, `Alpine.data()` + `Alpine.store()`                      |
 | `qrcode`                | ^1.5.4  | **Génération** de QR codes (page bénévole, scanner)                     |
 
-### Dépendances majeures (build / qualité)
+### Dépendances majeures (build)
 
-| Dépendance         | Version  | Rôle                                                            |
-| ------------------ | -------- | --------------------------------------------------------------- |
-| `vite`             | ^7.3.0   | Bundler + dev server                                            |
-| `vite-plugin-html` | ^3.2.2   | Templates EJS, minification HTML, multi-pages                   |
-| `tailwindcss`      | ^3.3.5   | Framework CSS utility-first                                     |
-| `postcss`          | ^8.4.31  | Pipeline CSS (utilisé par Tailwind)                             |
-| `autoprefixer`     | ^10.4.16 | Préfixes vendeurs CSS                                           |
-| `eslint`           | ^10.4.0  | Linter JavaScript                                               |
-| `prettier`         | ^3.8.3   | Formateur                                                       |
-| `husky`            | ^9.1.7   | Hooks Git locaux (pre-commit)                                   |
-| `lint-staged`      | ^17.0.5  | Lance ESLint/Prettier sur les fichiers stagés uniquement        |
-| `knip`             | ^6.14.2  | Détection de code mort (exports inutilisés, deps non utilisées) |
+| Dépendance         | Version  | Rôle                                         |
+| ------------------ | -------- | -------------------------------------------- |
+| `vite`             | ^7.3.0   | Bundler + dev server                         |
+| `vite-plugin-html` | ^3.2.2   | Templates EJS, minification HTML, multi-pages |
+| `tailwindcss`      | ^3.3.5   | Framework CSS utility-first                  |
+| `postcss`          | ^8.4.31  | Pipeline CSS (utilisé par Tailwind)          |
+| `autoprefixer`     | ^10.4.16 | Préfixes vendeurs CSS                        |
 
 ---
 
@@ -145,20 +140,18 @@ Toute la logique backend critique (autorisations, contraintes métier) vit dans 
 ### Racine
 
 ```
-appel-benevoles/
+eventstaff/
 ├── index.html, admin.html, debit.html, scanner-tshirt.html,
 │   admin-connexions.html, besoins.html       # 6 pages d'entrée Vite
 ├── vite.config.js                            # 6 entrypoints, base "./"
 ├── package.json                              # scripts + deps
 ├── tailwind.config.js, postcss.config.js     # config CSS
-├── eslint.config.js, .prettierrc             # config qualité
+├── .env.example                              # modèle de variables d'env
 ├── src/                                      # voir détail ci-dessous
-├── supabase/                                 # config CLI + migrations + Edge Functions
-├── scripts/                                  # outils Node (check-env, audits)
-├── docs/                                     # documentation (deployment, ...)
-├── audit/                                    # rapports d'audit (DB, Lighthouse, notes)
-├── backups/                                  # dumps DB (cf. backups/README.md)
-└── .github/workflows/deploy.yml              # CI/CD GitHub Pages
+├── supabase/                                 # config + schéma SQL + Edge Functions
+├── README.md, GUIDE-INSTALLATION.md          # docs (install A→Z)
+├── ARCHITECTURE.md, DATABASE.md              # docs techniques
+└── .github/workflows/deploy.yml              # déploiement GitHub Pages
 ```
 
 ### `src/` — code source frontend
@@ -185,7 +178,7 @@ src/js/
 ├── scanner-tshirt.js      # Entrypoint page scanner-tshirt.html
 ├── admin-connexions.js    # Entrypoint page admin-connexions.html
 ├── besoins.js             # Entrypoint page besoins.html
-├── admin-timeline.js      # ⚠️ Non déclaré dans vite.config.js (voir audit/notes.md)
+├── admin-timeline.js      # ⚠️ Non déclaré comme entrypoint dans vite.config.js
 │
 ├── services/              # Accès Supabase — passage obligé pour tout JS
 │   ├── api.js             #   CRUD métier (benevoles, postes, inscriptions, cagnotte)
@@ -216,12 +209,12 @@ src/js/
 
 | Règle                                                                                            | Référence                |
 | ------------------------------------------------------------------------------------------------ | ------------------------ |
-| **Un seul client Supabase** : `createClient()` uniquement dans `config.js`                       | `CLAUDE.md` §"Singleton" |
-| **Pas d'accès `supabase.*` hors `services/`** : composants et stores passent par un service      | Conv. projet             |
-| **Pas de classes JS** : objets littéraux retournés par des fonctions (compatibles `Alpine.data`) | `CLAUDE.md`              |
-| **Pas de `x-data` inline > 3 lignes** : extraire dans `components/`                              | `CLAUDE.md`              |
-| **Préfixes méthodes** : `load…` pour chargement, `save…` pour persistance, toast après save      | `CLAUDE.md`              |
-| **ES modules natifs uniquement**, pas de barrel files (`index.js` ré-exportateurs)               | Convention               |
+| **Un seul client Supabase** : `createClient()` uniquement dans `config.js`                       | Convention projet |
+| **Pas d'accès `supabase.*` hors `services/`** : composants et stores passent par un service      | Convention projet |
+| **Pas de classes JS** : objets littéraux retournés par des fonctions (compatibles `Alpine.data`) | Convention projet |
+| **Pas de `x-data` inline > 3 lignes** : extraire dans `components/`                              | Convention projet |
+| **Préfixes méthodes** : `load…` pour chargement, `save…` pour persistance, toast après save      | Convention projet |
+| **ES modules natifs uniquement**, pas de barrel files (`index.js` ré-exportateurs)               | Convention projet |
 
 ### `src/partials/` — fragments HTML EJS
 
@@ -272,38 +265,16 @@ Vide actuellement. Réservé à d'éventuelles données statiques importées au 
 
 ```
 supabase/
-├── config.toml                          # Config CLI Supabase locale (ports, auth, edge runtime)
-├── migrations/                          # Schéma actif
-│   ├── 00000000000000_baseline.sql      # Schéma complet consolidé (source de vérité)
-│   └── _archive/                        # Migrations atomiques historiques (consolidées)
-├── migrations_archive_pre_refactor/     # Ancien historique (non rejouable from scratch)
-├── functions/                           # Edge Functions Deno
-│   ├── deno.json
-│   ├── send-planning/
-│   └── create-benevole/
-└── snippets/                            # Snippets SQL utilitaires
+├── config.toml                          # Config Supabase locale (ports, auth, edge runtime)
+├── migrations/
+│   └── 00000000000000_init.sql          # Schéma complet + seed config (fichier unique)
+└── functions/                           # Edge Functions Deno
+    ├── deno.json
+    ├── send-planning/
+    └── create-benevole/
 ```
 
-Le fichier `00000000000000_baseline.sql` (tables, vues, fonctions, triggers, policies RLS en `FORCE`, GRANTs PostgREST) est la source de vérité unique : il reconstruit l'intégralité du schéma `public` from-scratch via `supabase db reset`.
-
-### `scripts/`
-
-```
-scripts/
-├── check-env.js                # Vérifie la présence des variables d'env requises
-├── generate_sql.cjs            # Génération SQL utilitaire
-├── audit-alpine-methods.js     # Audit des méthodes Alpine référencées
-├── audit-orphan-partials.js    # Détecte les partials EJS non inclus
-└── README.md                   # Documentation locale des scripts
-```
-
-### `docs/`, `audit/`, `backups/`
-
-| Dossier    | Rôle                                                                                        |
-| ---------- | ------------------------------------------------------------------------------------------- |
-| `docs/`    | Documentation utilisateur (`deployment.md`)                                                 |
-| `audit/`   | Sortie d'analyses : tables/colonnes/RLS extraits, rapports Lighthouse, knip, notes vivantes |
-| `backups/` | Dumps PostgreSQL périodiques de la prod (cf. `backups/README.md`)                           |
+Le fichier `00000000000000_init.sql` (tables, vues, fonctions, triggers, policies RLS en `FORCE`, GRANTs PostgREST + clés `config` par défaut) est la **source de vérité unique** : il reconstruit l'intégralité du schéma `public` from-scratch, soit via `supabase db reset`, soit par copier-coller dans le SQL Editor Supabase (cf. `GUIDE-INSTALLATION.md`).
 
 ---
 
@@ -323,12 +294,8 @@ Caractéristiques résiduelles de l'architecture, sans impact fonctionnel :
 
 ## 5. Documents liés
 
-| Sujet                                          | Document                                                 |
-| ---------------------------------------------- | -------------------------------------------------------- |
-| Installation, dev, build local                 | [`README.md`](README.md)                                 |
-| Déploiement (CI/CD, secrets, rollback)         | [`docs/deployment.md`](docs/deployment.md)               |
-| Schéma DB, RLS, triggers, fonctions PL/pgSQL   | [`DATABASE.md`](DATABASE.md)                             |
-| Conventions de code, workflow Git, revue PR    | [`CONTRIBUTING.md`](CONTRIBUTING.md)                     |
-| Historique des versions                        | [`CHANGELOG.md`](CHANGELOG.md)                           |
-| Avertissements critiques (prod, RLS, triggers) | [`CLAUDE.md`](CLAUDE.md)                                 |
-| Reprise après sinistre (backups)               | [`docs/disaster_recovery.md`](docs/disaster_recovery.md) |
+| Sujet                                        | Document                                             |
+| -------------------------------------------- | ---------------------------------------------------- |
+| Installation rapide, dev, build local        | [`README.md`](README.md)                             |
+| Installation pas-à-pas (A→Z, non-dev)        | [`GUIDE-INSTALLATION.md`](GUIDE-INSTALLATION.md)     |
+| Schéma DB, RLS, triggers, fonctions PL/pgSQL | [`DATABASE.md`](DATABASE.md)                         |
