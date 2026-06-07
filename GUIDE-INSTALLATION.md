@@ -501,7 +501,7 @@ Cette sauvegarde a besoin de **deux secrets GitHub** (comme en Partie 6) :
 ### 10.1 Récupérer l'adresse de connexion (`SUPABASE_DB_URL`)
 
 1. Dans ton projet Supabase, clique sur le bouton **« Connect »** (en haut de la page, près du nom du projet).
-2. Dans la fenêtre qui s'ouvre, repère l'onglet/section **« Session pooler »** _(et non « Direct connection » ni « Transaction pooler »)._
+2. La fenêtre affiche d'abord **« Direct connection string »** : clique dessus pour ouvrir la liste des modes de connexion, puis choisis **« Session pooler »** _(et non « Direct connection » ni « Transaction pooler »)._
 3. Copie la chaîne affichée. Elle ressemble à :
 
    ```
@@ -510,7 +510,7 @@ Cette sauvegarde a besoin de **deux secrets GitHub** (comme en Partie 6) :
 
 4. **Remplace `[YOUR-PASSWORD]`** par le **mot de passe de la base** que tu as noté en **Partie 2.2** (à la création du projet). 👉 La chaîne finale ne doit plus contenir de crochets.
 
-> 💡 **Tu as perdu ce mot de passe ?** Tu peux en générer un nouveau dans **Project Settings → Database → Reset database password**, puis l'utiliser ici.
+> 💡 **Tu as perdu ce mot de passe ?** Tu peux en générer un nouveau dans **Database → Settings → Reset password**, puis l'utiliser ici.
 
 ### 10.2 Choisir le mot de passe de chiffrement (`BACKUP_GPG_PASSPHRASE`)
 
