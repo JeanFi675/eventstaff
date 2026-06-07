@@ -142,7 +142,7 @@ Ton site a besoin de **deux informations** pour parler à ta base :
    https://votreprojet.supabase.co
    ```
 
-   *(pas de `/rest/v1/`, pas de `/` final — juste `https://…​.supabase.co`)*
+   _(pas de `/rest/v1/`, pas de `/` final — juste `https://…​.supabase.co`)_
 
 > 📝 C'est cette valeur qui servira de secret **`VITE_SUPABASE_URL`** en Partie 7. Note-la comme **« Project URL »**.
 
@@ -161,10 +161,10 @@ Ton site a besoin de **deux informations** pour parler à ta base :
 
 ### Récapitulatif de la Partie 4
 
-| À noter           | Valeur (exemple)                           | Servira de secret GitHub  |
-| ----------------- | ------------------------------------------ | ------------------------- |
-| **Project URL**   | `https://votreprojet.supabase.co` | `VITE_SUPABASE_URL`       |
-| **clé anon**      | `eyJhbGciOiJIUzI1NiIsInR5cCI6…` (longue)   | `VITE_SUPABASE_ANON_KEY`  |
+| À noter         | Valeur (exemple)                         | Servira de secret GitHub |
+| --------------- | ---------------------------------------- | ------------------------ |
+| **Project URL** | `https://votreprojet.supabase.co`        | `VITE_SUPABASE_URL`      |
+| **clé anon**    | `eyJhbGciOiJIUzI1NiIsInR5cCI6…` (longue) | `VITE_SUPABASE_ANON_KEY` |
 
 ---
 
@@ -172,23 +172,40 @@ Ton site a besoin de **deux informations** pour parler à ta base :
 
 L'application connecte les gens **sans mot de passe** : on saisit son email, on reçoit un **code à 6 chiffres** par email, on le tape. Voici comment régler ça.
 
-### 5.1 N'autoriser que la connexion par email
+### 5.1 Configurer la connexion par email
 
-1. Menu **« Authentication »** → **« Sign In / Providers »**.
-2. Vérifie que **« Email »** est **activé (Enabled)**.
-3. Sous Email, règle :
-   - **« Confirm email »** → **désactivé (OFF)**. _(Le code à 6 chiffres prouve déjà que la personne possède l'adresse ; un second email de confirmation casserait le parcours.)_
-   - **« Secure email change »** → tu peux laisser activé.
-4. Laisse tous les autres fournisseurs (Google, Apple, Phone…) **désactivés**.
+Va dans le menu **« Authentication »** → **« Sign In / Providers »**. La page se règle en **deux temps** : d'abord le bloc **« User Signups »**, puis le bloc **« Auth Providers »**.
 
-### 5.2 Régler le code à 6 chiffres
+#### A. Bloc « User Signups » — désactiver « Confirm email »
 
-Toujours dans **Authentication**, cherche les réglages **« Email OTP »** (souvent dans _Providers → Email_, ou _Auth → Settings_) :
+1. Repère l'option **« Confirm email »**.
+2. Mets-la sur **désactivé (OFF)**.
+3. Clique sur **« Save changes »**.
 
-- **Email OTP Length** → **6**.
-- **Email OTP Expiration** → **3600** secondes (1 heure) convient bien.
+> **Pourquoi ?** Le code à 6 chiffres prouve déjà que la personne possède son adresse email. Un second email de confirmation doublerait les envois et casserait le parcours de connexion.
 
-### 5.3 ⭐ Étape clé : afficher le code dans l'email
+#### B. Bloc « Auth Providers » — le fournisseur « Email »
+
+1. Dans la liste des fournisseurs, vérifie que **« Email »** est **activé**, puis **clique dessus** pour déployer ses réglages.
+2. Règle chaque option comme suit :
+
+| Option (panneau Email)                     | Réglage conseillé                               | Pourquoi                                                                                          |
+| ------------------------------------------ | ----------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| **Enable email provider**                  | ✅ **Activé**                                   | C'est le **seul** mode de connexion de l'application.                                              |
+| **Secure email change**                    | ✅ Activé (valeur par défaut)                   | Sécurité : un changement d'email se confirme sur l'ancienne **et** la nouvelle adresse. Sans impact. |
+| **Secure password change**                 | Laisser par défaut                              | L'app **n'utilise aucun mot de passe** côté utilisateur : ce réglage est sans effet ici.          |
+| **Require current password when updating** | Laisser par défaut (OFF)                        | Idem — aucun mot de passe utilisateur dans le parcours.                                            |
+| **Prevent use of leaked passwords**        | ✅ Activer **si disponible**                    | Bonus sécurité, mais **réservé à l'offre Pro**. Sur l'offre gratuite c'est grisé : ignore, sans impact. |
+| **Minimum password length**                | **8**                                           | Défense en profondeur pour un éventuel compte créé avec mot de passe (ex. admin via dashboard).   |
+| **Password requirements**                  | **« Lowercase, uppercase letters and digits »** | Même raison ; coût nul puisque les utilisateurs ne saisissent jamais de mot de passe.             |
+| **Email OTP expiration**                   | **3600** (soit 1 heure)                         | Durée de validité du code reçu par email.                                                          |
+| **Email OTP length**                       | **6**                                           | ⭐ L'application attend un code à **6 chiffres**. **Ne pas changer.**                              |
+
+3. Clique sur **« Save changes »**.
+
+> 💡 Laisse **tous les autres fournisseurs** (Google, Apple, Phone, etc.) **désactivés** : ils ne sont pas utilisés par l'application.
+
+### 5.2 ⭐ Étape clé : afficher le code dans l'email
 
 Par défaut, l'email de connexion de Supabase contient **un lien**, mais **pas le code à 6 chiffres**. Comme l'application demande le **code**, il faut modifier le modèle d'email.
 
@@ -218,7 +235,7 @@ Par défaut, l'email de connexion de Supabase contient **un lien**, mais **pas l
 
 > ⭐ La balise `{{ .Token }}` est **indispensable** : c'est elle qui insère le code à 6 chiffres. Sans elle, personne ne pourra se connecter.
 
-### 5.4 Déclarer l'adresse de ton site
+### 5.3 Déclarer l'adresse de ton site
 
 1. Menu **« Authentication »** → **« URL Configuration »**.
 2. **Site URL** → colle **l'adresse de ton site** (Partie 1.3), par ex. :
