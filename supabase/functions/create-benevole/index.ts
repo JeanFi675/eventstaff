@@ -59,7 +59,7 @@ Deno.serve(async (req) => {
     }
 
     // Récupérer les données du nouveau bénévole
-    const { email, nom, prenom } = await req.json();
+    const { email, nom, prenom, telephone } = await req.json();
 
     if (!email || !nom || !prenom) {
       return new Response(
@@ -125,6 +125,10 @@ Deno.serve(async (req) => {
         email: email,
         nom: nom,
         prenom: prenom,
+        // La colonne telephone est NOT NULL (contrainte CHECK : 'INCONNU' ou
+        // un format téléphone). Le formulaire admin n'envoie pas toujours de
+        // téléphone → on retombe sur le sentinelle 'INCONNU' (modifiable ensuite).
+        telephone: telephone || 'INCONNU',
         role: 'benevole'
       })
       .select()
