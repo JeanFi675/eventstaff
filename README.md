@@ -109,12 +109,11 @@ npm run preview    # Sert le build sur http://localhost:4173
 
 ## Edge Functions (optionnel — emails & création de comptes)
 
-Trois fonctions Deno dans [`supabase/functions/`](supabase/functions/) :
+Deux fonctions Deno dans [`supabase/functions/`](supabase/functions/) :
 
 | Fonction          | Rôle                                                          |
 | ----------------- | ------------------------------------------------------------- |
 | `send-planning`   | Envoie son planning à un bénévole par email                   |
-| `send-rappel-all` | Rappel groupé à tous les bénévoles                            |
 | `create-benevole` | Création d'un compte bénévole par un admin (Service Role Key) |
 
 Déploiement (nécessite la CLI Supabase) :

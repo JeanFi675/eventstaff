@@ -63,8 +63,8 @@ Toute la logique backend critique (autorisations, contraintes métier) vit dans 
 │  │   Auth   │  │   PostgreSQL 17   │  │   Edge Functions   │   │
 │  │ OTP 6 ch.│  │  + RLS policies   │  │      (Deno 2)      │   │
 │  │  (email) │  │  + Triggers       │  │  • send-planning   │   │
-│  └──────────┘  │  + Fonctions RPC  │  │  • send-rappel-all │   │
-│                │  + Vues publiques │  │  • create-benevole │   │
+│  └──────────┘  │  + Fonctions RPC  │  │  • create-benevole │   │
+│                │  + Vues publiques │  │                    │   │
 │                └───────────────────┘  └────────────────────┘   │
 │                                                                │
 └────────────────────────────────────────────────────────────────┘
@@ -280,7 +280,6 @@ supabase/
 ├── functions/                           # Edge Functions Deno
 │   ├── deno.json
 │   ├── send-planning/
-│   ├── send-rappel-all/
 │   └── create-benevole/
 └── snippets/                            # Snippets SQL utilitaires
 ```

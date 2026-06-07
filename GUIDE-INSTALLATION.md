@@ -424,7 +424,7 @@ where email = 'ton.email@exemple.com';
 
 Cette partie active deux fonctionnalités **facultatives** :
 
-- l'**envoi du planning** par email aux bénévoles (`send-planning`, `send-rappel-all`) ;
+- l'**envoi du planning** par email à un bénévole (`send-planning`) ;
 - la **création de comptes bénévoles directement depuis l'admin** (`create-benevole`).
 
 > ℹ️ **Tu peux ignorer cette partie au début.** Sans elle, tes bénévoles peuvent quand même se connecter eux-mêmes (par code à 6 chiffres) et s'inscrire aux postes. Reviens-y quand tu voudras envoyer des plannings par email.
@@ -451,7 +451,6 @@ supabase link --project-ref TON-REF-PROJET
 
 ```bash
 supabase functions deploy send-planning
-supabase functions deploy send-rappel-all
 supabase functions deploy create-benevole
 ```
 
