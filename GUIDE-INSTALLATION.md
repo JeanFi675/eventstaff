@@ -123,25 +123,48 @@ Tu dois obtenir **`nb_tables` = 17** (tables et vues du schéma `public`) et **`
 
 # Partie 4 — Récupérer tes clés (URL + clé publique)
 
-Ton site a besoin de savoir **où** est ta base et avec **quelle clé** lui parler.
+Ton site a besoin de **deux informations** pour parler à ta base :
 
-1. Dans Supabase, ouvre les réglages de l'API. Selon la version du tableau de bord, le chemin est l'un de ces deux :
-   - **« Project Settings »** (la roue dentée) → **« API »**, **ou**
-   - menu vertical de gauche **« Integrations »** → **« Data API »**.
-2. Repère et 👉 **note ces deux valeurs** :
+- **A.** l'**adresse** de ta base (_Project URL_) ;
+- **B.** la **clé publique** de connexion (_anon key_).
 
-| Information         | Où la trouver                                | Exemple                                    |
-| ------------------- | -------------------------------------------- | ------------------------------------------ |
-| **Project URL**     | _Integrations → Data API_, champ _API URL_   | `https://sjslcrpkjyveyckxippa.supabase.co` |
-| **anon public key** | _Project Settings → API keys_, onglet **« Legacy anon, service_role API keys »** → clé `anon` `public` | une longue chaîne commençant par `eyJ…`    |
+> ⚠️ **Attention : ces deux informations ne sont PAS au même endroit** dans le tableau de bord Supabase. Suis les deux sous-sections ci-dessous l'une après l'autre. Garde ton bloc-notes ouvert pour les copier.
 
-> ⚠️ **Le champ « API URL » peut afficher un suffixe `/rest/v1/`** (ex. `https://xxxx.supabase.co/rest/v1/`). **Supprime `/rest/v1/`** : il te faut uniquement la racine `https://xxxx.supabase.co` (sans `/` à la fin).
+### 4.A — L'adresse de la base (Project URL)
+
+1. Dans le menu vertical de gauche, clique sur **« Integrations »**.
+2. Dans le sous-menu, ouvre **« Data API »**.
+3. Repère le champ **« API URL »**. Il ressemble à :
+   `https://sjslcrpkjyveyckxippa.supabase.co/rest/v1/`
+4. **Copie-le, MAIS supprime le suffixe `/rest/v1/`** à la fin. 👉 Tu dois noter **uniquement la racine** :
+
+   ```
+   https://sjslcrpkjyveyckxippa.supabase.co
+   ```
+
+   *(pas de `/rest/v1/`, pas de `/` final — juste `https://…​.supabase.co`)*
+
+> 📝 C'est cette valeur qui servira de secret **`VITE_SUPABASE_URL`** en Partie 7. Note-la comme **« Project URL »**.
+
+### 4.B — La clé publique (anon key)
+
+1. Dans le menu vertical de gauche, clique sur **« Project Settings »** (la roue dentée).
+2. Dans le sous-menu, ouvre **« API keys »**.
+3. Clique sur l'onglet **« Legacy anon, service_role API keys »**.
+4. Repère la ligne **`anon` `public`** et copie sa valeur : une **longue chaîne** commençant par **`eyJ…`**. 👉 Note-la comme **« clé anon »**.
+
+> 📝 C'est cette valeur qui servira de secret **`VITE_SUPABASE_ANON_KEY`** en Partie 7.
+
+> ✅ La clé `anon public` est **faite pour être publique** : aucun risque à l'utiliser sur le site. La sécurité repose sur les règles de la base (RLS). La mention « Legacy » est normale — c'est exactement la clé attendue par l'application.
 >
-> 💡 **Tu ne vois pas de clé `anon` ?** Dans le tableau de bord récent, va dans **Project Settings → API keys** puis ouvre l'onglet **« Legacy anon, service_role API keys »** : la clé `anon` `public` (format `eyJ…`) s'y trouve. C'est bien celle attendue par l'application.
+> 🚫 Sur la même page, tu verras aussi une clé **`service_role`** : **ne l'utilise JAMAIS** sur le site web (elle contourne toute la sécurité). On ne s'en sert qu'en Partie 9 (avancé), côté serveur uniquement.
 
-> ✅ La clé `anon public` est **faite pour être publique** : pas d'inquiétude à l'utiliser sur le site. La sécurité repose sur les règles de la base.
->
-> 🚫 **N'utilise JAMAIS** la clé `service_role` (la « secrète ») sur le site web. On ne s'en servira qu'en Partie 9 (avancé), côté serveur uniquement.
+### Récapitulatif de la Partie 4
+
+| À noter           | Valeur (exemple)                           | Servira de secret GitHub  |
+| ----------------- | ------------------------------------------ | ------------------------- |
+| **Project URL**   | `https://sjslcrpkjyveyckxippa.supabase.co` | `VITE_SUPABASE_URL`       |
+| **clé anon**      | `eyJhbGciOiJIUzI1NiIsInR5cCI6…` (longue)   | `VITE_SUPABASE_ANON_KEY`  |
 
 ---
 
