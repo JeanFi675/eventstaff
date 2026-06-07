@@ -135,11 +135,11 @@ Ton site a besoin de **deux informations** pour parler à ta base :
 1. Dans le menu vertical de gauche, clique sur **« Integrations »**.
 2. Dans le sous-menu, ouvre **« Data API »**.
 3. Repère le champ **« API URL »**. Il ressemble à :
-   `https://sjslcrpkjyveyckxippa.supabase.co/rest/v1/`
+   `https://votreprojet.supabase.co/rest/v1/`
 4. **Copie-le, MAIS supprime le suffixe `/rest/v1/`** à la fin. 👉 Tu dois noter **uniquement la racine** :
 
    ```
-   https://sjslcrpkjyveyckxippa.supabase.co
+   https://votreprojet.supabase.co
    ```
 
    *(pas de `/rest/v1/`, pas de `/` final — juste `https://…​.supabase.co`)*
@@ -163,7 +163,7 @@ Ton site a besoin de **deux informations** pour parler à ta base :
 
 | À noter           | Valeur (exemple)                           | Servira de secret GitHub  |
 | ----------------- | ------------------------------------------ | ------------------------- |
-| **Project URL**   | `https://sjslcrpkjyveyckxippa.supabase.co` | `VITE_SUPABASE_URL`       |
+| **Project URL**   | `https://votreprojet.supabase.co` | `VITE_SUPABASE_URL`       |
 | **clé anon**      | `eyJhbGciOiJIUzI1NiIsInR5cCI6…` (longue)   | `VITE_SUPABASE_ANON_KEY`  |
 
 ---
