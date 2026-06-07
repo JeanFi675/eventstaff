@@ -320,9 +320,11 @@ On va donner tes clés Supabase à GitHub (de façon sécurisée), puis activer 
 
 Ce sont des informations privées que GitHub utilise pour construire le site, sans les afficher publiquement.
 
-1. Dans **ton dépôt** GitHub → onglet **« Settings »**.
-2. Menu de gauche → **« Secrets and variables »** → **« Actions »**.
-3. Clique **« New repository secret »** et crée **ces trois secrets**, un par un :
+1. Va sur la page de **ton dépôt** GitHub. Tout en **haut**, repère la **barre d'onglets** (`Code`, `Issues`, `Pull requests`, `Actions`…) et clique sur **« Settings »** — c'est le **dernier onglet, à droite** (icône d'engrenage ⚙️).
+2. Une fois dans Settings, un **menu vertical apparaît à gauche**. Descends jusqu'à la section _Security_ et clique sur **« Secrets and variables »** : un petit sous-menu se déplie → clique sur **« Actions »**.
+3. En **haut à droite** de la page, clique sur le bouton vert **« New repository secret »**.
+4. Un formulaire s'ouvre : remplis le champ **« Name »** (le nom exact), puis le grand champ **« Secret »** (la valeur), et clique sur le bouton vert **« Add secret »** en bas.
+5. **Répète** l'opération (re-clique « New repository secret ») pour **chacun** de ces **trois** secrets :
 
 | Name (exactement)         | Secret (valeur)                                                   |
 | ------------------------- | ----------------------------------------------------------------- |
@@ -331,18 +333,21 @@ Ce sont des informations privées que GitHub utilise pour construire le site, sa
 | `VITE_APP_URL_PRODUCTION` | **l'adresse de ton site** (Partie 1.3)                            |
 
 > ⚠️ Respecte **exactement** les noms (majuscules, underscores). Une faute de frappe et le site ne saura pas se connecter à la base.
+>
+> ✅ Une fois les 3 ajoutés, ils apparaissent dans la liste **« Repository secrets »** (leur valeur reste masquée, c'est normal).
 
 ### 6.2 Activer GitHub Pages
 
-1. Toujours dans **« Settings »** → menu **« Pages »**.
-2. Sous **« Build and deployment »** → **Source** → choisis **« GitHub Actions »**.
+1. Reste dans **« Settings »**. Dans le **menu vertical de gauche**, section _Code and automation_, clique sur **« Pages »**.
+2. Au centre de la page, sous le titre **« Build and deployment »**, repère la ligne **« Source »** : c'est un **menu déroulant**. Ouvre-le et choisis **« GitHub Actions »**. _(La sélection est prise en compte immédiatement, il n'y a pas de bouton « Save » ici.)_
 
 ### 6.3 Lancer la publication
 
-1. Onglet **« Actions »** de ton dépôt.
-2. Si GitHub demande d'activer les workflows, clique pour **autoriser**.
-3. Dans la liste à gauche, clique sur **« Deploy to GitHub Pages »** → bouton **« Run workflow »** → **« Run workflow »**.
-4. Patiente 1 à 2 minutes : une coche **verte ✅** indique que c'est publié.
+1. Retourne en **haut** sur la **barre d'onglets** du dépôt et clique sur l'onglet **« Actions »**.
+2. ⚠️ Sur un dépôt copié (fork), les workflows sont désactivés par défaut : si un **bandeau jaune** s'affiche au centre, clique sur le bouton vert **« I understand my workflows, go ahead and enable them »**.
+3. Dans le **menu de gauche** (« Workflows »), clique sur **« Deploy to GitHub Pages »**.
+4. À **droite**, au-dessus de la liste des exécutions, clique sur le bouton **« Run workflow »** : un petit panneau s'ouvre → laisse la branche `main` sélectionnée et clique sur le bouton vert **« Run workflow »** à l'intérieur.
+5. Patiente 1 à 2 minutes, puis **recharge la page** : une **coche verte ✅** à côté de l'exécution indique que le site est publié.
 
 > 💡 Le site se republiera **automatiquement** à chaque modification que tu pousses sur la branche `main`.
 
