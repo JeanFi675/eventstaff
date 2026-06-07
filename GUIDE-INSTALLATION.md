@@ -117,7 +117,7 @@ select
   (select count(*) from public.config) as nb_cles_config;
 ```
 
-Tu dois obtenir un **`nb_tables`** d'une vingtaine et **`nb_cles_config` = 5**. Tu peux aussi ouvrir le menu **« Table Editor »** : la liste des tables doit apparaître (`benevoles`, `postes`, `inscriptions`, `config`…).
+Tu dois obtenir **`nb_tables` = 17** (tables et vues du schéma `public`) et **`nb_cles_config` = 5**. Tu peux aussi ouvrir le menu **« Table Editor »** : la liste des tables doit apparaître (`benevoles`, `postes`, `inscriptions`, `config`…).
 
 ---
 
