@@ -1,7 +1,7 @@
 import '../styles/main.css';
 import '../css/scanner-tshirt.css';
 import Alpine from 'alpinejs';
-import { ApiService } from './services/api.js';
+import { PublicApiService } from './services/public-api.js';
 import { createConfirmModalState, askConfirm, handleConfirm } from './utils/confirm.js';
 
 /**
@@ -51,7 +51,9 @@ Alpine.data('tshirtScanner', () => ({
     }, 5000);
 
     try {
-      const { data, error } = await ApiService.rpc('get_family_tshirt_info_smart', { scan_id: id });
+      const { data, error } = await PublicApiService.rpc('get_family_tshirt_info_smart', {
+        scan_id: id,
+      });
 
       if (error) throw error;
 
@@ -103,7 +105,7 @@ Alpine.data('tshirtScanner', () => ({
     try {
       // Process all in parallel
       const promises = toValidate.map(async (v) => {
-        const { error } = await ApiService.rpc('update_tshirt_status', {
+        const { error } = await PublicApiService.rpc('update_tshirt_status', {
           target_id: v.benevole_id,
           new_taille: v.taille_tshirt,
           mark_collected: true,

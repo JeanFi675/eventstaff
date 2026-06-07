@@ -2,7 +2,7 @@
 
 Schéma PostgreSQL 17 du projet, hébergé sur Supabase managé. Toutes les tables sont dans le schéma `public`, toutes ont **RLS activée ET forcée** (`FORCE ROW LEVEL SECURITY`).
 
-> **Source de vérité** : `supabase/migrations/00000000000000_baseline.sql` (schéma complet consolidé depuis la prod). Ce document est la version humainement lisible de ce fichier. En cas de divergence, c'est le SQL qui fait foi.
+> **Source de vérité** : `supabase/migrations/00000000000000_init.sql` (schéma complet consolidé). Ce document est la version humainement lisible de ce fichier. En cas de divergence, c'est le SQL qui fait foi.
 
 ---
 
@@ -282,7 +282,7 @@ Sélection des périodes pour lesquelles un bénévole reçoit automatiquement l
 - `cagnotte_active` (bool) — toggle de l'affichage cagnotte côté UI.
 - `tshirt_question_active` (bool) — toggle de la question taille T-shirt dans le wizard.
 - `tarif_cagnotte_journee` (number) — montant crédité par journée de cagnotte forcée (défaut 15.00).
-- `event_title` (string) — titre de l'évènement (identité générique). Alimente le header public et le `<title>` des pages. Repli front « Appel aux Bénévoles » si vide. Semée par `20260605130000_seed_event_identity_config.sql`.
+- `event_title` (string) — titre de l'évènement (identité générique). Alimente le header public et le `<title>` des pages. Repli front « Appel aux Bénévoles » si vide. Semée par le fichier init.
 - `event_address` (string) — adresse / lieu de l'évènement, stockée en config.
 
 ### `orphan_relances` — comptes Auth sans profil bénévole
@@ -300,9 +300,9 @@ Recense les comptes Supabase Auth qui n'ont pas créé leur profil bénévole. S
 
 ### `public_planning` (réservée à `authenticated`, anonymisée)
 
-Source unique du planning affiché aux bénévoles connectés (`index.html`, `besoins.html`). **Les noms des bénévoles inscrits sont anonymisés** via `get_benevole_name()` (prénom + initiale, ex : "Marie D."). Inclut le décompte d'inscrits par poste et les coordonnées du référent (résolues via `get_benevole_full_name/email/phone` SECURITY DEFINER).
+Source unique du planning affiché aux bénévoles connectés (`index.html`, `besoins.html`). **Les noms des bénévoles inscrits sont anonymisés** via `get_benevole_name()` (prénom + initiale, ex : "Marie D."). Inclut le décompte d'inscrits par poste et les coordonnées du référent, uniquement quand l'utilisateur courant a le droit de les voir.
 
-> **Sécurité (migration `20260605140000`)** : l'accès `anon` à cette vue a été **révoqué**. Les colonnes `referent_nom/email/telephone` ne sont pas anonymisées ; le `GRANT anon` hérité des défauts PostgREST permettait de scraper ces coordonnées via l'API REST avec la clé anon publique. Aucune page ne lisant la vue sans session, la révocation est sans impact. La vue reste volontairement `SECURITY DEFINER` (bypass RLS requis pour les compteurs globaux côté non-admin) — le lint Supabase `security_definer_view` sur cette vue est un faux positif assumé. Ne pas re-`GRANT … TO anon` sans retirer d'abord les colonnes référent.
+> **Sécurité** : l'accès `anon` à cette vue est **révoqué**. Les colonnes `referent_nom/email/telephone` ne sont pas anonymisées ; elles passent par `get_benevole_full_name/email/phone`, qui retourne `NULL` si l'appelant n'est pas autorisé. La vue reste volontairement `SECURITY DEFINER` (bypass RLS requis pour les compteurs globaux côté non-admin) — le lint Supabase `security_definer_view` sur cette vue est un faux positif assumé. Ne pas re-`GRANT ... TO anon` sans retirer d'abord les colonnes référent.
 
 Colonnes : `poste_id, titre, periode_debut, periode_fin, nb_min, nb_max, periode, periode_ordre, description, referent_id, type_poste_ordre, referent_nom, referent_email, referent_telephone, nb_inscrits_actuels, liste_benevoles (array)`.
 
@@ -336,17 +336,17 @@ cagnotte_forced_type : journee | periode
 
 ### Triggers
 
-| Trigger                   | Table          | Événement       | Timing | Logique                                                                                        |
-| ------------------------- | -------------- | --------------- | ------ | ---------------------------------------------------------------------------------------------- |
-| `trg_check_capacity`      | `inscriptions` | INSERT          | BEFORE | Refuse l'inscription si `nb_max` du poste est déjà atteint                                     |
-| `trg_check_time_conflict` | `inscriptions` | INSERT + UPDATE | BEFORE | Refuse l'inscription si le bénévole est déjà inscrit sur un créneau qui chevauche celui-ci     |
-| `trg_prevent_role_change` | `benevoles`    | UPDATE          | BEFORE | Empêche un utilisateur authentifié de modifier sa propre colonne `role` (privilege escalation) |
+| Trigger                   | Table          | Événement       | Timing | Logique                                                                                                                       |
+| ------------------------- | -------------- | --------------- | ------ | ----------------------------------------------------------------------------------------------------------------------------- |
+| `trg_check_capacity`      | `inscriptions` | INSERT          | BEFORE | Refuse l'inscription si `nb_max` du poste est déjà atteint                                                                    |
+| `trg_check_time_conflict` | `inscriptions` | INSERT + UPDATE | BEFORE | Refuse l'inscription si le bénévole est déjà inscrit sur un créneau qui chevauche celui-ci                                    |
+| `trg_prevent_role_change` | `benevoles`    | INSERT + UPDATE | BEFORE | Empêche un utilisateur authentifié non-admin de s'auto-promouvoir ou de modifier des champs protégés depuis le navigateur/API |
 
 ### Fonctions trigger (logique d'arrière-plan)
 
 - `check_capacity()` — appelée par `trg_check_capacity`.
 - `check_time_conflict()` — appelée par `trg_check_time_conflict`.
-- `prevent_role_change()` — appelée par `trg_prevent_role_change`. La règle exacte : `NEW.role IS DISTINCT FROM OLD.role AND auth.role() = 'authenticated' AND auth.uid() = OLD.user_id`.
+- `prevent_role_change()` — appelée par `trg_prevent_role_change`. Elle bloque les utilisateurs authentifiés non-admin qui tentent de créer un profil avec un rôle autre que `benevole`, de changer un rôle existant, ou de modifier des champs protégés (`has_recupere_tshirt`, cagnotte forcée).
 
 ### Helpers d'autorisation RLS
 
@@ -359,6 +359,7 @@ Toutes en `STABLE SECURITY DEFINER SET search_path = public`. Elles sont la **br
 | `is_own_benevole(benevole_id uuid)` | bool   | `true` si la ligne `benevole_id` ciblée appartient à l'utilisateur courant (support famille) |
 | `is_referent_for_poste(poste_id)`   | bool   | `true` si `auth.uid()` est le référent de ce poste                                           |
 | `is_referent_for_benevole(uuid)`    | bool   | `true` si `auth.uid()` est référent d'un poste auquel le bénévole cible est inscrit          |
+| `can_read_benevole_contact(uuid)`   | bool   | `true` si l'appelant peut lire nom complet/email/téléphone : admin, soi-même, référent, ou bénévole concerné par ce référent |
 
 > La fonction `check_referent_access(uuid)` (helper historique) a été **supprimée** ; elle n'existe plus dans le schéma.
 
@@ -367,9 +368,9 @@ Toutes en `STABLE SECURITY DEFINER SET search_path = public`. Elles sont la **br
 | Fonction                             | Retour | Usage                                                              |
 | ------------------------------------ | ------ | ------------------------------------------------------------------ |
 | `get_benevole_name(uuid)`            | text   | Prénom + initiale du nom (`Marie D.`) — **anonymisation publique** |
-| `get_benevole_full_name(uuid)`       | text   | Prénom + nom complet (référent uniquement)                         |
-| `get_benevole_email(uuid)`           | text   | Email du référent                                                  |
-| `get_benevole_phone(uuid)`           | text   | Téléphone du référent                                              |
+| `get_benevole_full_name(uuid)`       | text   | Prénom + nom complet, filtré par `can_read_benevole_contact()`     |
+| `get_benevole_email(uuid)`           | text   | Email, filtré par `can_read_benevole_contact()`                    |
+| `get_benevole_phone(uuid)`           | text   | Téléphone, filtré par `can_read_benevole_contact()`                |
 | `get_public_benevole_info(uuid)`     | table  | (prenom, nom, solde) pour la borne buvette                         |
 | `get_public_tshirt_info(uuid)`       | table  | Statut t-shirt (taille, retrait) — scan public                     |
 | `get_family_tshirt_info(uuid)`       | table  | Statut t-shirt pour tous les profils liés à un `user_id`           |
@@ -389,13 +390,13 @@ Toutes en `STABLE SECURITY DEFINER SET search_path = public`. Elles sont la **br
 
 > **Pourquoi `SECURITY DEFINER`** : les RPC publiques et helpers doivent lire ou écrire `benevoles`/`cagnotte_transactions` (tables RLS-forcées). Sans DEFINER, l'utilisateur ne pourrait même pas vérifier son propre rôle (deadlock RLS). Toutes ces fonctions fixent `SET search_path = public` pour éviter le hijack de schéma (cf. `audit/16_rls.md` historique).
 
-> **Durcissement EXECUTE (migration `20260605150000`)** suite à l'audit du linter Supabase (lints `0028`/`0029`) :
+> **Durcissement EXECUTE** suite à l'audit du linter Supabase (lints `0028`/`0029`) :
 >
-> - `get_benevole_email/phone/full_name/name` : `EXECUTE` **révoqué de `PUBLIC`/`anon`** (empêche l'énumération de PII par UUID via `/rpc`). `authenticated` est **conservé** car la **vue** definer `public_planning` vérifie le droit des fonctions internes contre l'_appelant_ (≠ une fonction definer, qui les exécute en tant que propriétaire) — sans ce grant la vue casse.
+> - `get_benevole_email/phone/full_name` : `EXECUTE` **révoqué de `PUBLIC`/`anon`** et filtrage interne via `can_read_benevole_contact()` (empêche l'énumération de PII par UUID via `/rpc`). `authenticated` est conservé pour les vues et les écrans connectés.
 > - `get_auth_users_without_benevole()` : garde `is_admin()` **interne** ajoutée (exposait emails/téléphones des comptes Auth orphelins) + `EXECUTE` révoqué d'`anon`.
-> - **Non modifiés (faux positifs / par design)** : helpers RLS (`is_admin`, `auth_has_role`, `is_own_benevole`, `is_referent_*`) — exécutables car référencés dans les policies ; RPC borne/QR (`debit_cagnotte_public`, `get_public_benevole_info`, `get_public_inscriptions`, `get_public_tshirt_info`).
+> - **Non modifiés (faux positifs / par design)** : helpers RLS (`is_admin`, `auth_has_role`, `is_own_benevole`, `is_referent_*`) — exécutables car référencés dans les policies ; RPC borne/QR (`debit_cagnotte_public`, `get_public_benevole_info`, `get_public_inscriptions`, `get_public_tshirt_info`, `get_family_tshirt_info_smart`, `update_tshirt_status`).
 >
-> **Risque assumé — scanner T-shirt** : `scanner-tshirt.html` est un **kiosque QR sans authentification** (scan par des bénévoles non connectés, choix produit). `update_tshirt_status` et `get_family_tshirt_info_smart` restent donc exécutables par `anon` : avec l'UUID d'un bénévole, on peut lire son nom/taille et modifier son statut de retrait T-shirt. La protection repose sur l'obscurité de l'UUID (porté par le QR). **Ne pas verrouiller derrière un login sans revoir le workflow du stand.** Données opérationnelles non financières (la cagnotte, elle, est bornée et immuable).
+> **Risque assumé — pages QR publiques** : `debit.html` et `scanner-tshirt.html` restent volontairement sans authentification. Avec l'UUID porté par le QR, on peut utiliser la borne cagnotte ou lire/modifier le statut T-shirt. **Ne pas verrouiller derrière un login sans revoir le workflow des stands.** Les transactions cagnotte restent écrites en lignes immuables (pas d'UPDATE/DELETE).
 
 > **Note `extension_in_public`** (lint `0014`) : `citext` et `btree_gist` sont dans le schéma `public`. Non déplacées : `benevoles.email` est typée `public.citext` (déplacer le type casserait la colonne). Avertissement assumé.
 
@@ -405,14 +406,14 @@ Toutes en `STABLE SECURITY DEFINER SET search_path = public`. Elles sont la **br
 
 > **Note** : toutes les tables ont RLS **activée ET forcée** (`relrowsecurity = true`, `relforcerowsecurity = true`). Les rôles propriétaires (postgres) sont eux-mêmes soumis aux policies — le bypass ne reste possible qu'au travers des fonctions `SECURITY DEFINER`. Le `service_role` (utilisé par les Edge Functions) conserve `BYPASSRLS`.
 
-> **Note** : le baseline applique `GRANT ALL` sur toutes les tables à `anon`, `authenticated`, `service_role` (convention Supabase). Sans ces GRANTs, RLS n'est même pas évalué — c'est pire qu'une policy permissive.
+> **Note** : le fichier init applique `GRANT ALL` sur toutes les tables à `anon`, `authenticated`, `service_role` (convention Supabase). Sans ces GRANTs, RLS n'est même pas évalué — c'est pire qu'une policy permissive.
 
 **Symboles** : ✅ = autorisé, ⛔ = refusé (pas de policy → DENY implicite sous FORCE RLS), 👁️ = SELECT public (anon + authenticated).
 
 | Table                        | Public anon |            Bénévole (soi)            | Référent (postes liés) |          Admin          | Notes                                                                                                          |
 | ---------------------------- | :---------: | :----------------------------------: | :--------------------: | :---------------------: | -------------------------------------------------------------------------------------------------------------- |
-| `benevoles`                  |     ⛔      | ✅ SELECT/INSERT/UPDATE/DELETE (soi) |  ✅ SELECT (managed)   |         ✅ ALL          | UPDATE.role par soi-même bloqué par trigger                                                                    |
-| `inscriptions`               |     ⛔      |  ✅ SELECT/INSERT/DELETE (siennes)   |  ✅ SELECT (managed)   | ✅ SELECT/INSERT/DELETE | **UPDATE = DENY pour tous**. Triggers capacité/conflit en BEFORE INSERT                                        |
+| `benevoles`                  |     ⛔      | ✅ SELECT/INSERT/UPDATE/DELETE (soi) |  ✅ SELECT (managed)   |         ✅ ALL          | rôle et champs protégés bloqués par trigger pour les non-admins                                               |
+| `inscriptions`               |     ⛔      |        ✅ SELECT (siennes)           |  ✅ SELECT (managed)   | ✅ SELECT/INSERT/DELETE | Écriture bénévole via RPC `manage_inscriptions_transaction`; **UPDATE = DENY pour tous**                     |
 | `postes`                     |     👁️      |                  —                   |           —            |         ✅ ALL          |                                                                                                                |
 | `type_postes`                |     👁️      |                  —                   |           —            |         ✅ ALL          |                                                                                                                |
 | `periodes`                   |     👁️      |                  —                   |           —            |         ✅ ALL          |                                                                                                                |
@@ -432,12 +433,12 @@ Toutes en `STABLE SECURITY DEFINER SET search_path = public`. Elles sont la **br
 - **`benevoles_self_all`** (FOR ALL) — un utilisateur authentifié manipule ses propres lignes (`auth.uid() = user_id`). Couvre SELECT/INSERT/UPDATE/DELETE.
 - **`benevoles_referent_select_managed`** (FOR SELECT) — un référent voit les bénévoles inscrits sur ses postes (`is_referent_for_benevole(id)`).
 - **`benevoles_admin_all`** (FOR ALL) — accès complet pour `auth_has_role('admin')`.
-- **Garde-fou** : le trigger `trg_prevent_role_change` bloque toute tentative d'auto-promotion (`role` ne peut pas changer dans un UPDATE par soi-même).
+- **Garde-fou** : le trigger `trg_prevent_role_change` bloque toute tentative d'auto-promotion et protège les champs t-shirt/cagnotte sensibles pour les non-admins.
 
 #### `inscriptions`
 
 - **Pas de lecture publique anonyme.** Les compteurs/listes anonymisés sont servis par la vue `public_planning` (SECURITY DEFINER, désormais réservée à `authenticated` — cf. § Vues) et, pour l'accès réellement anonyme, par la RPC `get_public_inscriptions()` (SECURITY DEFINER).
-- **Bénévole** : `inscriptions_self_select/insert/delete` filtrent par `is_own_benevole(benevole_id)` — couvre les profils famille.
+- **Bénévole** : `inscriptions_self_select` autorise la lecture de ses propres inscriptions. Les ajouts/suppressions passent par la RPC `manage_inscriptions_transaction`, pour éviter les écritures directes concurrentes depuis le navigateur.
 - **Référent** : `inscriptions_referent_select_managed` autorise SELECT sur les inscriptions des postes dont il est référent (`is_referent_for_poste(poste_id)`).
 - **Admin** : `inscriptions_admin_select/insert/delete` filtrent par `auth_has_role('admin')`.
 - **UPDATE = DENY** : aucune policy UPDATE — une inscription ne se modifie pas, elle se supprime et se recrée.
@@ -481,7 +482,6 @@ Décision (2026-06-05) : **on ne les supprime pas**.
 
 ## 9. Liens utiles
 
-- [`supabase/migrations/00000000000000_baseline.sql`](supabase/migrations/00000000000000_baseline.sql) — schéma complet consolidé (source de vérité unique) : extensions, types, tables, vues, fonctions, triggers, helpers et policies RLS (`FORCE`), GRANTs PostgREST.
-- `supabase/migrations/_archive/` — migrations atomiques historiques (consolidées dans le baseline), conservées pour traçabilité.
+- [`supabase/migrations/00000000000000_init.sql`](supabase/migrations/00000000000000_init.sql) — schéma complet consolidé (source de vérité unique) : extensions, types, tables, vues, fonctions, triggers, helpers et policies RLS (`FORCE`), GRANTs PostgREST.
 - [`ARCHITECTURE.md`](ARCHITECTURE.md) — vue d'ensemble et flux applicatifs
 - [`CLAUDE.md`](CLAUDE.md) — avertissements critiques sur les triggers et RLS

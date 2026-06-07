@@ -4,7 +4,7 @@ Système **générique** et open-source de gestion de bénévoles pour **tout é
 
 Le titre et l'adresse de l'évènement se configurent **depuis l'espace admin** (« Identité de l'évènement ») — aucun nom d'évènement n'est écrit en dur dans le code. Tu déploies l'appli, tu crées ton projet Supabase, et tu construis ton évènement entièrement depuis l'interface.
 
-> Frontend statique (Vite + Alpine.js + Tailwind) + backend Supabase (PostgreSQL, Auth, RLS, Edge Functions). Hébergeable gratuitement sur GitHub Pages, Netlify, Vercel, etc.
+> Frontend statique (Vite + Alpine.js + Tailwind) + backend Supabase (PostgreSQL, Auth, RLS, Edge Functions). Hébergeable gratuitement sur GitHub Pages, Netlify, Vercel, etc. Un dépôt public est acceptable : les secrets restent côté Supabase/GitHub Actions et les sourcemaps ne sont pas publiées.
 
 > 🚀 **Pas développeur ?** Suis le **[Guide d'installation complet (A à Z)](GUIDE-INSTALLATION.md)** — de la création des comptes GitHub/Supabase jusqu'à ta première connexion en admin, sans écrire une ligne de code.
 
@@ -74,7 +74,7 @@ npm run dev        # http://localhost:5173
 
 ### 5. Créer le premier compte admin
 
-Connecte-toi une fois via le code à 6 chiffres **et valide le formulaire de profil** (cela crée ta fiche dans `benevoles` avec le rôle `benevole`). Passe-la ensuite en `admin`, soit via le **Table Editor** (table `benevoles` → ta ligne → colonne `role` → `admin`), soit en SQL :
+Connecte-toi une fois via le code à 6 chiffres **et valide le formulaire de profil** (cela crée ta fiche dans `benevoles` avec le rôle `benevole`). Passe-la ensuite en `admin` depuis le **dashboard Supabase** uniquement, soit via le **Table Editor** (table `benevoles` → ta ligne → colonne `role` → `admin`), soit en SQL :
 
 ```sql
 update public.benevoles
@@ -102,6 +102,8 @@ npm run preview    # Sert le build sur http://localhost:4173
 ```
 
 `vite.config.js` conserve `base: "./"` (chemins relatifs) pour un déploiement statique simple — déposer le contenu de `dist/` sur GitHub Pages, Netlify, Vercel, etc.
+
+Le build ne génère pas de sourcemaps publiées. C'est volontaire pour éviter d'exposer une version trop lisible du code dans un dépôt/site public.
 
 > Le `connect-src` de la CSP est dérivé automatiquement de `VITE_SUPABASE_URL` au moment du build : pense à builder **après** avoir renseigné cette variable.
 

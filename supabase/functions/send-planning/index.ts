@@ -206,7 +206,7 @@ Deno.serve(async (req) => {
     for (const [periode, missions] of sortedGroups) {
         htmlContent += `
             <div style="margin-top: 20px; border: 2px solid #000; padding: 10px; background-color: #f9f9f9;">
-                <h2 style="background-color: #000; color: #fff; padding: 5px 10px; margin: -10px -10px 10px -10px; font-size: 18px; text-transform: uppercase;">${periode}</h2>
+                <h2 style="background-color: #000; color: #fff; padding: 5px 10px; margin: -10px -10px 10px -10px; font-size: 18px; text-transform: uppercase;">${escapeHtml(periode)}</h2>
                 <table style="width: 100%; border-collapse: collapse;">
         `;
 
@@ -217,8 +217,8 @@ Deno.serve(async (req) => {
             htmlContent += `
                 <tr style="border-bottom: 1px solid #ddd;">
                     <td style="padding: 8px;">
-                        <strong style="display:block; font-size: 16px;">${m.titre}</strong>
-                        <span style="font-size: 14px; color: #666;">👤 ${m.benevole}</span>
+                        <strong style="display:block; font-size: 16px;">${escapeHtml(m.titre)}</strong>
+                        <span style="font-size: 14px; color: #666;">👤 ${escapeHtml(m.benevole)}</span>
                     </td>
                     <td style="padding: 8px; text-align: right; vertical-align: top;">
                         <div style="font-weight: bold;">${dateStr}</div>

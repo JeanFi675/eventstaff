@@ -54,7 +54,7 @@ GitHub héberge le code **et** publie gratuitement ton site.
    - Laisse **« Copy the main branch only »** coché.
 4. Clique sur **« Create fork »**. Au bout de quelques secondes, tu as **ta propre copie** du projet.
 
-> ⚠️ **Important : garde le dépôt PUBLIC.** GitHub Pages n'est gratuit que pour les dépôts publics. C'est sans risque ici : le code ne contient aucun secret, et l'accès aux données est protégé côté base (clé publique + règles de sécurité).
+> ⚠️ **Important : garde le dépôt PUBLIC.** GitHub Pages n'est gratuit que pour les dépôts publics. C'est acceptable ici : le code ne contient aucun secret, les fichiers sourcemap ne sont pas publiés, et l'accès aux données est protégé côté base (clé publique + règles de sécurité).
 
 ### 1.3 Note l'adresse de ton futur site
 
@@ -377,7 +377,7 @@ Ton site fonctionne, mais **personne n'est encore administrateur**. Voici commen
 
 ### 7.2 Te déclarer administrateur
 
-Le plus simple : changer ton rôle directement dans la base, **sans écrire de requête**.
+Le plus simple : changer ton rôle directement dans la base, **sans écrire de requête**. Cette opération se fait dans Supabase, pas depuis le site public.
 
 1. Dans Supabase, menu de gauche → **« Table Editor »**.
 2. En haut de la liste des tables, sélectionne **`benevoles`**.

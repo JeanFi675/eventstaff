@@ -48,7 +48,7 @@ export default defineConfig(({ mode }) => {
       outDir: 'dist',
       assetsDir: 'assets',
       minify: 'esbuild',
-      sourcemap: 'hidden',
+      sourcemap: false,
       rollupOptions: {
         input: {
           main: resolve(__dirname, 'index.html'),

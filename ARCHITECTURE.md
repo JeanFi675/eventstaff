@@ -24,7 +24,7 @@ Toute la logique backend critique (autorisations, contraintes métier) vit dans 
 │                                                                │
 │  Sources HTML/JS/CSS  ─► Vite 7 + vite-plugin-html (EJS)       │
 │  Tailwind CSS         ─► dist/  (minification esbuild,         │
-│                                  hash, sourcemap caché,        │
+│                                  hash, sourcemaps désactivées, │
 │                                  manualChunks :                │
 │                                  vendor-supabase /             │
 │                                  vendor-alpine /               │
@@ -76,7 +76,7 @@ Toute la logique backend critique (autorisations, contraintes métier) vit dans 
 | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
 | Connexion (OTP email)           | Navigateur → Supabase Auth (OTP 6 chiffres)                                                                            |
 | Affichage planning              | Navigateur → vues PostgreSQL anonymisées (REST PostgREST, filtré par RLS)                                              |
-| Inscription à un poste          | Navigateur → INSERT dans `inscriptions` → triggers `check_capacity` + `check_time_conflict` côté DB                    |
+| Inscription à un poste          | Navigateur → RPC `manage_inscriptions_transaction` → écriture DB en transaction + triggers capacité/conflit            |
 | Envoi du planning par email     | Navigateur → Edge Function `send-planning` → SMTP                                                                      |
 | Création de compte par un admin | Navigateur (admin) → Edge Function `create-benevole` (vérifie rôle, utilise service_role pour créer dans `auth.users`) |
 | Débit cagnotte (buvette)        | Navigateur → RPC PostgreSQL → INSERT `cagnotte_transactions`                                                           |
@@ -183,7 +183,7 @@ src/js/
 ├── services/              # Accès Supabase — passage obligé pour tout JS
 │   ├── api.js             #   CRUD métier (benevoles, postes, inscriptions, cagnotte)
 │   ├── auth.js            #   OTP, session, rôle utilisateur courant
-│   └── public-api.js      #   RPC anonymes via client isolé (ex: debit.html scanné par QR)
+│   └── public-api.js      #   RPC anonymes via client isolé (debit.html et scanner-tshirt.html)
 │
 ├── stores/                # Alpine.store() — état partagé global
 │   └── admin-store.js     #   (seul store actuel — autres domaines encore inline)

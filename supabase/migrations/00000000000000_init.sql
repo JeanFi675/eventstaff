@@ -289,6 +289,10 @@ CREATE FUNCTION public.get_benevole_email(b_id uuid) RETURNS text
 DECLARE
   res TEXT;
 BEGIN
+  IF NOT public.can_read_benevole_contact(b_id) THEN
+    RETURN NULL;
+  END IF;
+
   SELECT email
   INTO res
   FROM benevoles
@@ -309,6 +313,10 @@ CREATE FUNCTION public.get_benevole_full_name(b_id uuid) RETURNS text
 DECLARE
   res TEXT;
 BEGIN
+  IF NOT public.can_read_benevole_contact(b_id) THEN
+    RETURN NULL;
+  END IF;
+
   SELECT prenom || ' ' || nom
   INTO res
   FROM benevoles
@@ -349,6 +357,10 @@ CREATE FUNCTION public.get_benevole_phone(b_id uuid) RETURNS text
 DECLARE
   res TEXT;
 BEGIN
+  IF NOT public.can_read_benevole_contact(b_id) THEN
+    RETURN NULL;
+  END IF;
+
   SELECT telephone
   INTO res
   FROM benevoles
@@ -639,6 +651,29 @@ COMMENT ON FUNCTION public.is_referent_for_poste(target_poste_id uuid) IS 'Phase
 
 
 --
+-- Name: can_read_benevole_contact(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.can_read_benevole_contact(target_benevole_id uuid) RETURNS boolean
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'public'
+    AS $$
+  SELECT
+    public.auth_has_role('admin'::public.role_type)
+    OR public.is_own_benevole(target_benevole_id)
+    OR public.is_referent_for_benevole(target_benevole_id)
+    OR EXISTS (
+      SELECT 1
+      FROM inscriptions i
+      JOIN postes p ON p.id = i.poste_id
+      JOIN benevoles own_b ON own_b.id = i.benevole_id
+      WHERE p.referent_id = target_benevole_id
+        AND own_b.user_id = auth.uid()
+    );
+$$;
+
+
+--
 -- Name: manage_inscriptions_transaction(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -757,15 +792,37 @@ CREATE FUNCTION public.prevent_role_change() RETURNS trigger
     LANGUAGE plpgsql
     SET search_path TO 'public'
     AS $$
+DECLARE
+  caller_is_admin BOOLEAN;
 BEGIN
-  -- Check if the role is actually changing
-  -- AND the user is authenticated
-  -- AND the user is trying to change their own record (auth.uid() matches the record's user_id)
-  IF NEW.role IS DISTINCT FROM OLD.role 
-     AND auth.role() = 'authenticated' 
-     AND auth.uid() = OLD.user_id THEN
-    RAISE EXCEPTION 'You cannot change your own role.';
+  caller_is_admin := public.auth_has_role('admin'::public.role_type);
+
+  IF auth.role() = 'authenticated' AND NOT caller_is_admin THEN
+    IF TG_OP = 'INSERT' THEN
+      IF NEW.role IS DISTINCT FROM 'benevole'::public.role_type THEN
+        RAISE EXCEPTION 'You cannot choose your own role.';
+      END IF;
+
+      IF NEW.has_recupere_tshirt IS DISTINCT FROM false
+         OR NEW.is_cagnotte_forcee IS DISTINCT FROM false
+         OR NEW.cagnotte_forcee_type IS NOT NULL
+         OR COALESCE(cardinality(NEW.cagnotte_forcee_jours), 0) <> 0 THEN
+        RAISE EXCEPTION 'You cannot set protected volunteer fields.';
+      END IF;
+    ELSE
+      IF NEW.role IS DISTINCT FROM OLD.role THEN
+        RAISE EXCEPTION 'You cannot change your own role.';
+      END IF;
+
+      IF NEW.has_recupere_tshirt IS DISTINCT FROM OLD.has_recupere_tshirt
+         OR NEW.is_cagnotte_forcee IS DISTINCT FROM OLD.is_cagnotte_forcee
+         OR NEW.cagnotte_forcee_type IS DISTINCT FROM OLD.cagnotte_forcee_type
+         OR NEW.cagnotte_forcee_jours IS DISTINCT FROM OLD.cagnotte_forcee_jours THEN
+        RAISE EXCEPTION 'You cannot change protected volunteer fields.';
+      END IF;
+    END IF;
   END IF;
+
   RETURN NEW;
 END;
 $$;
@@ -1515,7 +1572,7 @@ CREATE TRIGGER trg_check_time_conflict BEFORE INSERT OR UPDATE ON public.inscrip
 -- Name: benevoles trg_prevent_role_change; Type: TRIGGER; Schema: public; Owner: -
 --
 
-CREATE TRIGGER trg_prevent_role_change BEFORE UPDATE ON public.benevoles FOR EACH ROW EXECUTE FUNCTION public.prevent_role_change();
+CREATE TRIGGER trg_prevent_role_change BEFORE INSERT OR UPDATE ON public.benevoles FOR EACH ROW EXECUTE FUNCTION public.prevent_role_change();
 
 
 --
@@ -1811,20 +1868,6 @@ CREATE POLICY inscriptions_admin_select ON public.inscriptions FOR SELECT TO aut
 --
 
 CREATE POLICY inscriptions_referent_select_managed ON public.inscriptions FOR SELECT TO authenticated USING (public.is_referent_for_poste(poste_id));
-
-
---
--- Name: inscriptions inscriptions_self_delete; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY inscriptions_self_delete ON public.inscriptions FOR DELETE TO authenticated USING (public.is_own_benevole(benevole_id));
-
-
---
--- Name: inscriptions inscriptions_self_insert; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY inscriptions_self_insert ON public.inscriptions FOR INSERT TO authenticated WITH CHECK (public.is_own_benevole(benevole_id));
 
 
 --
@@ -2149,13 +2192,21 @@ GRANT ALL ON FUNCTION public.is_referent_for_poste(target_poste_id uuid) TO serv
 
 
 --
+-- Name: FUNCTION can_read_benevole_contact(target_benevole_id uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.can_read_benevole_contact(target_benevole_id uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.can_read_benevole_contact(target_benevole_id uuid) TO authenticated;
+GRANT ALL ON FUNCTION public.can_read_benevole_contact(target_benevole_id uuid) TO service_role;
+
+
+--
 -- Name: FUNCTION manage_inscriptions_transaction(target_user_id uuid, modifications jsonb); Type: ACL; Schema: public; Owner: -
 --
 
 REVOKE ALL ON FUNCTION public.manage_inscriptions_transaction(target_user_id uuid, modifications jsonb) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.manage_inscriptions_transaction(target_user_id uuid, modifications jsonb) TO authenticated;
 GRANT ALL ON FUNCTION public.manage_inscriptions_transaction(target_user_id uuid, modifications jsonb) TO service_role;
-GRANT ALL ON FUNCTION public.manage_inscriptions_transaction(target_user_id uuid, modifications jsonb) TO anon;
 
 
 --
