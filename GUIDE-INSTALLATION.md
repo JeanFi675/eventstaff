@@ -4,7 +4,7 @@ Ce guide t'accompagne **de A à Z** pour mettre en ligne ton propre site de gest
 
 **Durée estimée :** 45 min à 1 h 30 selon ton aisance.
 
-**Coût :** 0 € (offres gratuites de GitHub et Supabase). Un service d'envoi d'emails gratuit est recommandé (voir Partie 6).
+**Coût :** 0 € (offres gratuites de GitHub et Supabase). Un service d'envoi d'emails gratuit est recommandé (voir Partie 5.2).
 
 ---
 
@@ -13,7 +13,7 @@ Ce guide t'accompagne **de A à Z** pour mettre en ligne ton propre site de gest
 - Un ordinateur avec un navigateur web (Chrome, Firefox, Edge…).
 - Une **adresse email** valide (ce sera ton compte admin).
 - 1 heure devant toi.
-- **(Optionnel, pour les emails)** un compte chez un fournisseur d'envoi d'emails (Brevo, Gmail…). Détaillé en Partie 6.
+- **(Optionnel, pour les emails)** un compte chez un fournisseur d'envoi d'emails (Brevo, Gmail…). Détaillé en Partie 5.2.
 
 > 💡 **Garde un bloc-notes ouvert.** Tu vas devoir noter quelques informations au fil de l'eau (clés, mots de passe, adresses). Une petite zone « copier-coller » te fera gagner du temps.
 
@@ -25,12 +25,11 @@ Ce guide t'accompagne **de A à Z** pour mettre en ligne ton propre site de gest
 2. **Supabase** — créer un compte et un projet (la base de données)
 3. **Importer la structure** — un seul fichier SQL à coller
 4. **Récupérer tes clés** — l'adresse et la clé de ta base
-5. **Configurer la connexion** — code à 6 chiffres + email
-6. **Configurer l'envoi d'emails (SMTP)** — pour que les codes partent
-7. **Mettre le site en ligne** — secrets GitHub + activation des Pages
-8. **Première connexion + devenir admin**
-9. _(Avancé, optionnel)_ Edge Functions — emails de planning
-10. **Configurer ton événement** depuis l'admin
+5. **Configurer la connexion & les emails** — code à 6 chiffres, SMTP, modèle d'email
+6. **Mettre le site en ligne** — secrets GitHub + activation des Pages
+7. **Première connexion + devenir admin**
+8. _(Avancé, optionnel)_ Edge Functions — emails de planning
+9. **Configurer ton événement** depuis l'admin
 
 ---
 
@@ -66,7 +65,7 @@ https://TON-PSEUDO.github.io/NOM-DU-DEPOT/
 
 Exemple : `https://marie-dupont.github.io/benevoles-festival/`
 
-👉 **Note cette adresse complète** (avec le `/` final). On l'appellera **« l'adresse du site »** dans la suite. On l'utilisera aux Parties 5 et 7.
+👉 **Note cette adresse complète** (avec le `/` final). On l'appellera **« l'adresse du site »** dans la suite. On l'utilisera aux Parties 5 et 6.
 
 ---
 
@@ -84,7 +83,7 @@ Supabase est la « base de données » : elle stocke les bénévoles, les postes
 1. Clique sur **« New project »**.
 2. Renseigne :
    - **Name** : ce que tu veux (ex. `benevoles-festival`).
-   - **Database Password** : clique sur **« Generate a password »** puis 👉 **NOTE-LE précieusement**. Tu en auras besoin pour les options avancées (Partie 9). Tu ne pourras pas le revoir ensuite.
+   - **Database Password** : clique sur **« Generate a password »** puis 👉 **NOTE-LE précieusement**. Tu en auras besoin pour les options avancées (Partie 8). Tu ne pourras pas le revoir ensuite.
    - **Region** : choisis la plus proche de tes utilisateurs (ex. **West EU (Paris)** ou **Frankfurt**).
 3. Clique sur **« Create new project »** et **patiente ~2 minutes** (Supabase prépare ta base).
 
@@ -144,7 +143,7 @@ Ton site a besoin de **deux informations** pour parler à ta base :
 
    _(pas de `/rest/v1/`, pas de `/` final — juste `https://…​.supabase.co`)_
 
-> 📝 C'est cette valeur qui servira de secret **`VITE_SUPABASE_URL`** en Partie 7. Note-la comme **« Project URL »**.
+> 📝 C'est cette valeur qui servira de secret **`VITE_SUPABASE_URL`** en Partie 6. Note-la comme **« Project URL »**.
 
 ### 4.B — La clé publique (anon key)
 
@@ -153,11 +152,11 @@ Ton site a besoin de **deux informations** pour parler à ta base :
 3. Clique sur l'onglet **« Legacy anon, service_role API keys »**.
 4. Repère la ligne **`anon` `public`** et copie sa valeur : une **longue chaîne** commençant par **`eyJ…`**. 👉 Note-la comme **« clé anon »**.
 
-> 📝 C'est cette valeur qui servira de secret **`VITE_SUPABASE_ANON_KEY`** en Partie 7.
+> 📝 C'est cette valeur qui servira de secret **`VITE_SUPABASE_ANON_KEY`** en Partie 6.
 
 > ✅ La clé `anon public` est **faite pour être publique** : aucun risque à l'utiliser sur le site. La sécurité repose sur les règles de la base (RLS). La mention « Legacy » est normale — c'est exactement la clé attendue par l'application.
 >
-> 🚫 Sur la même page, tu verras aussi une clé **`service_role`** : **ne l'utilise JAMAIS** sur le site web (elle contourne toute la sécurité). On ne s'en sert qu'en Partie 9 (avancé), côté serveur uniquement.
+> 🚫 Sur la même page, tu verras aussi une clé **`service_role`** : **ne l'utilise JAMAIS** sur le site web (elle contourne toute la sécurité). On ne s'en sert qu'en Partie 8 (avancé), côté serveur uniquement.
 
 ### Récapitulatif de la Partie 4
 
@@ -168,9 +167,11 @@ Ton site a besoin de **deux informations** pour parler à ta base :
 
 ---
 
-# Partie 5 — Configurer la connexion (code à 6 chiffres)
+# Partie 5 — Configurer la connexion & les emails
 
 L'application connecte les gens **sans mot de passe** : on saisit son email, on reçoit un **code à 6 chiffres** par email, on le tape. Voici comment régler ça.
+
+> 🧭 **Ordre important.** On règle d'abord les fournisseurs (5.1), **puis le SMTP (5.2)**, et **seulement après** le modèle d'email (5.3). Pourquoi ? Parce que Supabase **bloque la modification des modèles d'email tant qu'aucun SMTP personnalisé n'est configuré**. Respecte cet ordre pour éviter un blocage.
 
 ### 5.1 Configurer la connexion par email
 
@@ -205,12 +206,53 @@ Va dans le menu **« Authentication »** → **« Sign In / Providers »**. La p
 
 > 💡 Laisse **tous les autres fournisseurs** (Google, Apple, Phone, etc.) **désactivés** : ils ne sont pas utilisés par l'application.
 
-### 5.2 ⭐ Étape clé : afficher le code dans l'email
+### 5.2 Configurer l'envoi d'emails (SMTP) — **à faire maintenant**
+
+Pour que les codes à 6 chiffres **partent réellement** vers tes bénévoles — **et** pour pouvoir modifier le modèle d'email à l'étape 5.3 — il faut brancher un service d'envoi d'emails (SMTP).
+
+> ⚠️ **Deux raisons de le faire dès maintenant :**
+>
+> 1. Le service d'email **intégré** de Supabase est **très limité** (quelques emails/heure, parfois réservés à ta propre adresse) : insuffisant pour un vrai événement.
+> 2. Supabase **interdit la modification des modèles d'email tant qu'un SMTP personnalisé n'est pas activé**. Sans cette étape, tu seras **bloqué** en 5.3.
+
+**a) Choisir un fournisseur (gratuit)**
+
+| Fournisseur               | Offre gratuite     | Remarque                                    |
+| ------------------------- | ------------------ | ------------------------------------------- |
+| **Brevo** (ex-Sendinblue) | ~300 emails/jour   | Simple, recommandé pour débuter             |
+| **Mailjet**               | ~6 000 emails/mois | Bonne alternative                           |
+| **Gmail** (SMTP)          | usage perso limité | Nécessite un « mot de passe d'application » |
+
+Crée un compte chez l'un d'eux, puis récupère ses **paramètres SMTP** (_Hôte_, _Port_, _Identifiant_, _Mot de passe / clé SMTP_).
+
+**b) Brancher le SMTP dans Supabase**
+
+1. Menu **« Project Settings »** → **« Authentication »** → section **« SMTP Settings »** (ou _Authentication → Emails → SMTP_).
+2. Active **« Enable Custom SMTP »** et renseigne :
+
+| Champ            | Valeur (exemple Brevo)                                                      |
+| ---------------- | --------------------------------------------------------------------------- |
+| **Host**         | `smtp-relay.brevo.com`                                                      |
+| **Port**         | `587`                                                                       |
+| **Username**     | l'identifiant fourni par le service                                         |
+| **Password**     | la clé/mot de passe SMTP du service                                         |
+| **Sender email** | une adresse **vérifiée** chez le fournisseur (ex. `contact@ton-domaine.fr`) |
+| **Sender name**  | le nom affiché (ex. `Bénévoles Festival`)                                   |
+
+3. **Enregistre**.
+
+> 💡 **L'adresse expéditrice doit être validée** chez ton fournisseur (vérification par email ou via ton nom de domaine). Sinon les emails seront refusés ou marqués comme spam.
+>
+> 💡 **Augmente la limite d'envoi** : dans _Authentication → Rate Limits_, monte la limite d'emails par heure si tu attends beaucoup d'inscriptions simultanées.
+
+### 5.3 ⭐ Étape clé : afficher le code dans l'email
 
 Par défaut, l'email de connexion de Supabase contient **un lien**, mais **pas le code à 6 chiffres**. Comme l'application demande le **code**, il faut modifier le modèle d'email.
 
+> ✅ **Prérequis : le SMTP de l'étape 5.2 doit être activé**, sinon Supabase n'autorise pas la modification des modèles.
+
 1. Menu **« Authentication »** → **« Emails »** (ou _Email Templates_).
-2. Ouvre le modèle **« Magic Link »**. _(C'est bien celui-ci qui est utilisé pour la connexion par code.)_
+2. Ouvre le modèle **« Magic link or OTP »**. _(C'est bien celui utilisé pour la connexion par code.)_
 3. **Remplace tout son contenu** par ceci :
 
 ```html
@@ -235,7 +277,7 @@ Par défaut, l'email de connexion de Supabase contient **un lien**, mais **pas l
 
 > ⭐ La balise `{{ .Token }}` est **indispensable** : c'est elle qui insère le code à 6 chiffres. Sans elle, personne ne pourra se connecter.
 
-### 5.3 Déclarer l'adresse de ton site
+### 5.4 Déclarer l'adresse de ton site
 
 1. Menu **« Authentication »** → **« URL Configuration »**.
 2. **Site URL** → colle **l'adresse de ton site** (Partie 1.3), par ex. :
@@ -248,51 +290,11 @@ Par défaut, l'email de connexion de Supabase contient **un lien**, mais **pas l
 
 ---
 
-# Partie 6 — Configurer l'envoi d'emails (SMTP)
-
-Pour que les codes à 6 chiffres **partent réellement** vers tes bénévoles, il faut brancher un service d'envoi d'emails.
-
-> ⚠️ **Pourquoi c'est nécessaire ?** Le service d'email **intégré** de Supabase est **très limité** (quelques emails par heure, parfois réservés à ton propre compte). Il dépanne pour tester, mais **pas pour un vrai événement**. Branche un service SMTP pour des envois fiables.
-
-### 6.1 Choisir un fournisseur (gratuit)
-
-Quelques options courantes avec une offre gratuite :
-
-| Fournisseur               | Offre gratuite     | Remarque                                    |
-| ------------------------- | ------------------ | ------------------------------------------- |
-| **Brevo** (ex-Sendinblue) | ~300 emails/jour   | Simple, recommandé pour débuter             |
-| **Mailjet**               | ~6 000 emails/mois | Bonne alternative                           |
-| **Gmail** (SMTP)          | usage perso limité | Nécessite un « mot de passe d'application » |
-
-Crée un compte chez l'un d'eux, puis récupère ses **paramètres SMTP** (généralement : _Hôte_, _Port_, _Identifiant_, _Mot de passe / clé SMTP_).
-
-### 6.2 Brancher le SMTP dans Supabase
-
-1. Menu **« Project Settings »** → **« Authentication »** → section **« SMTP Settings »** (ou _Authentication → Emails → SMTP_).
-2. Active **« Enable Custom SMTP »** et renseigne :
-
-| Champ            | Valeur (exemple Brevo)                                                      |
-| ---------------- | --------------------------------------------------------------------------- |
-| **Host**         | `smtp-relay.brevo.com`                                                      |
-| **Port**         | `587`                                                                       |
-| **Username**     | l'identifiant fourni par le service                                         |
-| **Password**     | la clé/mot de passe SMTP du service                                         |
-| **Sender email** | une adresse **vérifiée** chez le fournisseur (ex. `contact@ton-domaine.fr`) |
-| **Sender name**  | le nom affiché (ex. `Bénévoles Festival`)                                   |
-
-3. **Enregistre**.
-
-> 💡 **L'adresse expéditrice doit être validée** chez ton fournisseur (vérification par email ou via ton nom de domaine). Sinon les emails seront refusés ou marqués comme spam.
->
-> 💡 **Augmente la limite d'envoi** : dans _Authentication → Rate Limits_, monte la limite d'emails par heure si tu attends beaucoup d'inscriptions simultanées.
-
----
-
-# Partie 7 — Mettre le site en ligne
+# Partie 6 — Mettre le site en ligne
 
 On va donner tes clés Supabase à GitHub (de façon sécurisée), puis activer la publication.
 
-### 7.1 Ajouter les « secrets » GitHub
+### 6.1 Ajouter les « secrets » GitHub
 
 Ce sont des informations privées que GitHub utilise pour construire le site, sans les afficher publiquement.
 
@@ -308,12 +310,12 @@ Ce sont des informations privées que GitHub utilise pour construire le site, sa
 
 > ⚠️ Respecte **exactement** les noms (majuscules, underscores). Une faute de frappe et le site ne saura pas se connecter à la base.
 
-### 7.2 Activer GitHub Pages
+### 6.2 Activer GitHub Pages
 
 1. Toujours dans **« Settings »** → menu **« Pages »**.
 2. Sous **« Build and deployment »** → **Source** → choisis **« GitHub Actions »**.
 
-### 7.3 Lancer la publication
+### 6.3 Lancer la publication
 
 1. Onglet **« Actions »** de ton dépôt.
 2. Si GitHub demande d'activer les workflows, clique pour **autoriser**.
@@ -322,7 +324,7 @@ Ce sont des informations privées que GitHub utilise pour construire le site, sa
 
 > 💡 Le site se republiera **automatiquement** à chaque modification que tu pousses sur la branche `main`.
 
-### 7.4 Vérifier
+### 6.4 Vérifier
 
 Ouvre **l'adresse de ton site** dans le navigateur. La page d'accueil de l'application doit s'afficher. 🎉
 
@@ -330,11 +332,11 @@ Ouvre **l'adresse de ton site** dans le navigateur. La page d'accueil de l'appli
 
 ---
 
-# Partie 8 — Première connexion + devenir administrateur
+# Partie 7 — Première connexion + devenir administrateur
 
 Ton site fonctionne, mais **personne n'est encore administrateur**. Voici comment le devenir.
 
-### 8.1 Se connecter une première fois
+### 7.1 Se connecter une première fois
 
 1. Ouvre **l'adresse de ton site**.
 2. Lance la connexion, saisis **ton adresse email**, valide.
@@ -343,9 +345,9 @@ Ton site fonctionne, mais **personne n'est encore administrateur**. Voici commen
 
 > ✅ Tu es maintenant « connecté », mais comme un visiteur sans profil. Cette étape a créé ton **compte de connexion** dans Supabase. On va maintenant te promouvoir admin.
 >
-> ⚠️ **Aucun email reçu ?** Le SMTP (Partie 6) n'est probablement pas configuré/validé. Voir **Dépannage**.
+> ⚠️ **Aucun email reçu ?** Le SMTP (Partie 5.2) n'est probablement pas configuré/validé. Voir **Dépannage**.
 
-### 8.2 Te déclarer administrateur (une requête SQL)
+### 7.2 Te déclarer administrateur (une requête SQL)
 
 1. Retourne dans Supabase → **« SQL Editor »** → **« + New query »**.
 2. Colle la requête ci-dessous **en remplaçant les valeurs** entre guillemets par les tiennes (utilise **la même adresse email** que celle de ta connexion à l'étape 8.1) :
@@ -366,7 +368,7 @@ where u.email = 'ton.email@exemple.com';
 
 > 💡 **Ça affiche « 0 rows » ?** C'est que l'email ne correspond à aucun compte de connexion : refais bien l'étape 8.1 avec **la même adresse**, puis relance la requête.
 
-### 8.3 Profiter de ton accès admin
+### 7.3 Profiter de ton accès admin
 
 1. Retourne sur le site et **reconnecte-toi** (ou recharge la page).
 2. Ouvre la page d'administration : ajoute **`admin.html`** à l'adresse de ton site, par ex. :
@@ -383,7 +385,7 @@ where u.email = 'ton.email@exemple.com';
 
 ---
 
-# Partie 9 — (Avancé, optionnel) Emails de planning & création de comptes
+# Partie 8 — (Avancé, optionnel) Emails de planning & création de comptes
 
 Cette partie active deux fonctionnalités **facultatives** :
 
@@ -394,12 +396,12 @@ Cette partie active deux fonctionnalités **facultatives** :
 
 Ces « Edge Functions » sont de petits programmes qui tournent côté serveur. Leur installation demande quelques commandes dans un **terminal** — c'est la seule étape un peu technique.
 
-### 9.1 Installer les outils
+### 8.1 Installer les outils
 
 - **Supabase CLI** : suis https://supabase.com/docs/guides/cli (installation en 1 commande selon ton système).
 - **Deno** : suis https://deno.com (nécessaire à la CLI pour ces fonctions).
 
-### 9.2 Se connecter et relier ton projet
+### 8.2 Se connecter et relier ton projet
 
 Ouvre un terminal **dans le dossier du projet** (récupéré via `git clone` de ton fork) :
 
@@ -410,7 +412,7 @@ supabase link --project-ref TON-REF-PROJET
 
 > `TON-REF-PROJET` est l'identifiant de ton projet (visible dans l'URL Supabase et dans _Project Settings → General_).
 
-### 9.3 Déployer les fonctions
+### 8.3 Déployer les fonctions
 
 ```bash
 supabase functions deploy send-planning
@@ -418,9 +420,9 @@ supabase functions deploy send-rappel-all
 supabase functions deploy create-benevole
 ```
 
-### 9.4 Donner au serveur les accès SMTP
+### 8.4 Donner au serveur les accès SMTP
 
-Ces fonctions envoient des emails via **leur propre** configuration SMTP (indépendante de la Partie 6). Renseigne-la :
+Ces fonctions envoient des emails via **leur propre** configuration SMTP (indépendante de la Partie 5.2). Renseigne-la :
 
 ```bash
 supabase secrets set SMTP_HOST=smtp-relay.brevo.com
@@ -439,7 +441,7 @@ supabase secrets list
 
 ---
 
-# Partie 10 — Configurer ton événement
+# Partie 9 — Configurer ton événement
 
 Tout est en place ! Connecte-toi sur `…/admin.html` et, dans l'espace admin :
 
@@ -457,13 +459,13 @@ Ton site est prêt à recevoir des inscriptions. 🙌
 **Je ne reçois pas le code par email.**
 
 - Vérifie tes **spams**.
-- La cause la plus fréquente : le **SMTP** (Partie 6) n'est pas activé, ou l'**adresse expéditrice n'est pas validée** chez ton fournisseur.
+- La cause la plus fréquente : le **SMTP** (Partie 5.2) n'est pas activé, ou l'**adresse expéditrice n'est pas validée** chez ton fournisseur.
 - Au tout début, le service intégré de Supabase n'envoie parfois qu'à **ta propre** adresse (celle du compte Supabase) et très peu d'emails/heure : configure le SMTP custom.
 
 **Le code est refusé / « invalide ou expiré ».**
 
 - Le code expire (1 h par défaut) : redemande-en un.
-- Vérifie l'étape **5.3** : le modèle **« Magic Link »** doit contenir `{{ .Token }}`.
+- Vérifie l'étape **5.3** : le modèle **« Magic link or OTP »** doit contenir `{{ .Token }}`.
 - Sers-toi du **dernier** code reçu (en demander un nouveau invalide les précédents).
 
 **Le site affiche une page blanche ou une erreur 404.**
@@ -474,8 +476,8 @@ Ton site est prêt à recevoir des inscriptions. 🙌
 
 **Le site se charge mais « impossible de se connecter à la base ».**
 
-- Vérifie les **trois secrets** (Partie 7.1) : noms **exacts** et valeurs correctes (URL + clé `anon`).
-- Après correction d'un secret, **relance** le workflow (Partie 7.3) pour reconstruire le site.
+- Vérifie les **trois secrets** (Partie 6.1) : noms **exacts** et valeurs correctes (URL + clé `anon`).
+- Après correction d'un secret, **relance** le workflow (Partie 6.3) pour reconstruire le site.
 
 **La requête « devenir admin » affiche « 0 rows ».**
 
@@ -496,6 +498,6 @@ Ton site est prêt à recevoir des inscriptions. 🙌
 | Project URL Supabase              | Secret `VITE_SUPABASE_URL`            |
 | Clé `anon public` Supabase        | Secret `VITE_SUPABASE_ANON_KEY`       |
 | Mot de passe base de données      | Options avancées (CLI)                |
-| Identifiants SMTP                 | Envoi des emails (Parties 6 et 9)     |
+| Identifiants SMTP                 | Envoi des emails (Parties 5.2 et 8)   |
 
 Besoin d'aller plus loin sur la technique ? Vois [`README.md`](README.md), [`ARCHITECTURE.md`](ARCHITECTURE.md) et [`DATABASE.md`](DATABASE.md).
