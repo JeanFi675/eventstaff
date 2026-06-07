@@ -125,13 +125,17 @@ Tu dois obtenir **`nb_tables` = 17** (tables et vues du schéma `public`) et **`
 
 Ton site a besoin de savoir **où** est ta base et avec **quelle clé** lui parler.
 
-1. Dans Supabase, menu de gauche → **« Project Settings »** (la roue dentée) → **« API »**.
+1. Dans Supabase, ouvre les réglages de l'API. Selon la version du tableau de bord, le chemin est l'un de ces deux :
+   - **« Project Settings »** (la roue dentée) → **« API »**, **ou**
+   - menu vertical de gauche **« Integrations »** → **« Data API »**.
 2. Repère et 👉 **note ces deux valeurs** :
 
-| Information         | Où la trouver                                | Exemple                                 |
-| ------------------- | -------------------------------------------- | --------------------------------------- |
-| **Project URL**     | Section _Project URL_                        | `https://abcdefgh.supabase.co`          |
-| **anon public key** | Section _Project API keys_ → `anon` `public` | une longue chaîne commençant par `eyJ…` |
+| Information         | Où la trouver                                | Exemple                                    |
+| ------------------- | -------------------------------------------- | ------------------------------------------ |
+| **Project URL**     | Champ _Project URL_ / _API URL_              | `https://sjslcrpkjyveyckxippa.supabase.co` |
+| **anon public key** | Section _Project API keys_ → `anon` `public` | une longue chaîne commençant par `eyJ…`    |
+
+> ⚠️ **Le champ « API URL » peut afficher un suffixe `/rest/v1/`** (ex. `https://xxxx.supabase.co/rest/v1/`). **Supprime `/rest/v1/`** : il te faut uniquement la racine `https://xxxx.supabase.co` (sans `/` à la fin).
 
 > ✅ La clé `anon public` est **faite pour être publique** : pas d'inquiétude à l'utiliser sur le site. La sécurité repose sur les règles de la base.
 >
