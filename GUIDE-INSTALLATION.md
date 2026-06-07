@@ -287,13 +287,27 @@ Par défaut, l'email de connexion de Supabase contient **un lien**, mais **pas l
 
 ### 5.4 Déclarer l'adresse de ton site
 
+**Rappel : comment est composée l'adresse de ton site ?** Elle est créée automatiquement par GitHub Pages et suit **toujours** ce format :
+
+```
+https://NOM-D-UTILISATEUR.github.io/NOM-DU-DEPOT/
+```
+
+- **NOM-D-UTILISATEUR** = ton pseudo GitHub (celui de la Partie 1.1).
+- **NOM-DU-DEPOT** = le nom que tu as donné au dépôt (la Partie 1.2).
+
+> Exemple : pseudo `marie-dupont` + dépôt `benevoles-festival` → l'adresse est
+> `https://marie-dupont.github.io/benevoles-festival/`
+> (tout en minuscules, avec le `/` à la fin).
+
+Une fois l'adresse reconstituée, déclare-la dans Supabase :
+
 1. Menu **« Authentication »** → **« URL Configuration »**.
-2. **Site URL** → colle **l'adresse de ton site** (Partie 1.3), par ex. :
+2. **Site URL** → colle **l'adresse de ton site**, par ex. :
    `https://marie-dupont.github.io/benevoles-festival/`
-3. **Redirect URLs** → clique **« Add URL »** et ajoute ces deux entrées :
+3. **Redirect URLs** → clique **« Add URL »** et ajoute ces deux entrées (remplace par ta vraie adresse) :
    - `https://marie-dupont.github.io/benevoles-festival/**`
    - `https://marie-dupont.github.io/benevoles-festival/index.html`
-     _(remplace par ta vraie adresse)_
 4. **Enregistre**.
 
 ---
