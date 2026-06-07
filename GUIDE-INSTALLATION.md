@@ -533,14 +533,27 @@ Exactement comme en **Partie 6.1** : dépôt GitHub → **Settings** → **Secre
 
 ### 10.5 Restaurer une sauvegarde (le jour où c'est nécessaire)
 
-1. Télécharge le fichier `db-backup-….gpg` depuis l'exécution voulue (onglet **Actions**).
-2. Déchiffre-le sur ton ordinateur (outil **GPG** requis) avec **ta** phrase de passe :
+1. Onglet **« Actions »** → ouvre l'exécution voulue → dans la section **« Artifacts »**, télécharge **`db-backup-…`**. GitHub te donne un **`.zip`** : **dézippe-le**. Tu obtiens à l'intérieur le fichier chiffré **`backup_….sql.gpg`**.
 
-   ```bash
+2. **Installe l'outil GPG** s'il n'est pas déjà présent (il fournit la commande `gpg`).
+   - **Windows** (dans PowerShell) :
+
+     ```powershell
+     winget install --id GnuPG.GnuPG -e --source winget
+     ```
+
+     Puis **ferme et rouvre PowerShell**, et vérifie avec `gpg --version`.
+   - **macOS** : `brew install gnupg` — **Linux** : `sudo apt install gnupg`.
+
+3. **Déchiffre** le fichier avec **ta** phrase de passe (`BACKUP_GPG_PASSPHRASE`). Place-toi d'abord dans le dossier dézippé, puis lance :
+
+   ```powershell
    gpg --decrypt --output backup.sql backup_XXXXXXXX.sql.gpg
    ```
 
-3. Réimporte `backup.sql` dans une base Supabase (via un client PostgreSQL comme `psql`). _C'est une opération technique : en cas de doute, fais-toi aider._
+   > ⚠️ **Ordre des fichiers important** : après `--output`, le **fichier à créer** (`backup.sql`, déchiffré) ; **ensuite** le **fichier chiffré** d'entrée (`…​.sql.gpg`). Ne mets **pas** le même nom des deux côtés, sinon tu écrases ta sauvegarde. GPG te demandera alors la phrase de passe.
+
+4. **Réimporte** `backup.sql` dans une base Supabase (via un client PostgreSQL comme `psql`). _C'est une opération technique : en cas de doute, fais-toi aider._
 
 > ⚠️ **À savoir (important pour le « garde en vie ») :** GitHub **désactive automatiquement les tâches planifiées d'un dépôt après 60 jours sans aucune modification (commit)**. Si plus personne ne touche au dépôt pendant 60 jours, la sauvegarde nocturne s'arrête — et ton projet Supabase pourrait alors être mis en pause. Pour réactiver : refais un **« Run workflow »** manuel (étape 10.4) ou pousse une petite modification. Pendant la période active de ton événement, tu n'auras aucun souci.
 
