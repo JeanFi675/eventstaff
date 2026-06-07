@@ -463,7 +463,11 @@ La fonction `send-planning` envoie les emails via **ton service SMTP** (le même
 
 > ✅ Les clés `SUPABASE_URL`, `SUPABASE_ANON_KEY` et `SUPABASE_SERVICE_ROLE_KEY` sont fournies **automatiquement** par Supabase à tes fonctions — **ne les ajoute pas** à la main, et ne mets **jamais** la `service_role` ailleurs.
 >
-> 💡 Tu peux reprendre **exactement les mêmes identifiants SMTP** que ceux saisis en Partie 5.2.
+> ℹ️ Le SMTP configuré dans **Authentication** (Partie 5.2) **n'est pas partagé** avec les Edge Functions : il faut bien re-saisir ces secrets ici (une seule fois).
+>
+> ⚠️ **Gmail / Google Workspace** : `SMTP_PASS` doit être un **mot de passe d'application** (16 caractères) **collé SANS les espaces** affichés par Google ; le mot de passe habituel du compte est refusé (erreur `535-5.7.8`). `SMTP_USER` = ton adresse Google complète, et `SMTP_PORT` = `465`.
+>
+> 💡 **Fournisseur exigeant un expéditeur vérifié** (Brevo, etc.) : ajoute un 5ᵉ secret `SMTP_FROM` = l'adresse expéditrice **validée** chez ton fournisseur (sinon l'envoi est rejeté).
 
 ---
 
@@ -508,6 +512,11 @@ Ton site est prêt à recevoir des inscriptions. 🙌
 **Je ne trouve pas ma ligne dans la table `benevoles` (étape 7.2).**
 
 - C'est que ton **profil n'a pas encore été créé**. Retourne sur le site, connecte-toi et **valide le formulaire d'inscription** (prénom, nom, téléphone) de l'étape **7.1** avec **la même adresse email**, puis reviens dans le Table Editor.
+
+**L'envoi du planning échoue avec `535-5.7.8 Username and Password not accepted` (Gmail).**
+
+- Google a refusé tes identifiants SMTP. Utilise un **mot de passe d'application** (validation en 2 étapes activée), **collé sans espaces**, et `SMTP_USER` = ton adresse Google complète. Corrige le secret dans **Edge Functions → Secrets** (inutile de redéployer la fonction), puis réessaie.
+- ⚠️ Le SMTP de **Authentication** (OTP) n'est **pas** réutilisé par les Edge Functions : ce sont des secrets distincts. Que l'OTP fonctionne ne garantit donc pas que les secrets de la fonction soient corrects.
 
 **Je me suis trompé dans l'import SQL.**
 

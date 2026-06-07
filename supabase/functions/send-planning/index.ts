@@ -76,11 +76,15 @@ Deno.serve(async (req) => {
 
     console.log("✅ User authenticated:", user.email);
 
-    // 2. Configuration SMTP (Gmail)
+    // 2. Configuration SMTP
+    // secure=true uniquement sur le port 465 (TLS implicite). Sur le port 587
+    // (STARTTLS) ou tout autre port, secure DOIT être false, sinon la connexion
+    // TLS échoue immédiatement. On dérive donc secure du port.
+    const smtpPort = parseInt(Deno.env.get("SMTP_PORT") || "465");
     const transporter = nodemailer.createTransport({
       host: Deno.env.get("SMTP_HOST") || "smtp.gmail.com",
-      port: parseInt(Deno.env.get("SMTP_PORT") || "465"),
-      secure: true,
+      port: smtpPort,
+      secure: smtpPort === 465,
       auth: {
         user: Deno.env.get("SMTP_USER"),
         pass: Deno.env.get("SMTP_PASS"),
@@ -346,7 +350,9 @@ Deno.serve(async (req) => {
 
     // 9. Envoi de l'email
     const info = await transporter.sendMail({
-      from: '"Organisation Bénévoles" <' + (Deno.env.get("SMTP_USER") || "noreply@example.com") + '>',
+      // Brevo & co exigent une adresse expéditrice VÉRIFIÉE. On la configure via
+      // SMTP_FROM ; repli sur SMTP_USER (valable surtout pour Gmail).
+      from: '"Organisation Bénévoles" <' + (Deno.env.get("SMTP_FROM") || Deno.env.get("SMTP_USER") || "noreply@example.com") + '>',
       to: user.email,
       subject: "📅 Votre Planning Bénévole",
       html: htmlContent,
