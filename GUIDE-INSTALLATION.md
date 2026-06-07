@@ -4,7 +4,7 @@ Ce guide t'accompagne **de A à Z** pour mettre en ligne ton propre site de gest
 
 **Durée estimée :** 45 min à 1 h 30 selon ton aisance.
 
-**Coût :** 0 € (offres gratuites de GitHub et Supabase). Un service d'envoi d'emails gratuit est recommandé (voir Partie 5.2).
+**Coût :** 0 € (offres gratuites de GitHub et Supabase). Un service d'envoi d'emails est **requis** mais se trouve en offre gratuite (voir Partie 5.2).
 
 ---
 
@@ -13,7 +13,7 @@ Ce guide t'accompagne **de A à Z** pour mettre en ligne ton propre site de gest
 - Un ordinateur avec un navigateur web (Chrome, Firefox, Edge…).
 - Une **adresse email** valide (ce sera ton compte admin).
 - 1 heure devant toi.
-- **(Optionnel, pour les emails)** un compte chez un fournisseur d'envoi d'emails (Brevo, Gmail…). Détaillé en Partie 5.2.
+- **(Requis)** un compte chez un fournisseur d'envoi d'emails (Brevo, Gmail…) — indispensable pour envoyer les codes de connexion. Détaillé en Partie 5.2.
 
 > 💡 **Garde un bloc-notes ouvert.** Tu vas devoir noter quelques informations au fil de l'eau (clés, mots de passe, adresses). Une petite zone « copier-coller » te fera gagner du temps.
 
@@ -190,17 +190,17 @@ Va dans le menu **« Authentication »** → **« Sign In / Providers »**. La p
 1. Dans la liste des fournisseurs, vérifie que **« Email »** est **activé**, puis **clique dessus** pour déployer ses réglages.
 2. Règle chaque option comme suit :
 
-| Option (panneau Email)                     | Réglage conseillé                               | Pourquoi                                                                                          |
-| ------------------------------------------ | ----------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| **Enable email provider**                  | ✅ **Activé**                                   | C'est le **seul** mode de connexion de l'application.                                              |
-| **Secure email change**                    | ✅ Activé (valeur par défaut)                   | Sécurité : un changement d'email se confirme sur l'ancienne **et** la nouvelle adresse. Sans impact. |
-| **Secure password change**                 | Laisser par défaut                              | L'app **n'utilise aucun mot de passe** côté utilisateur : ce réglage est sans effet ici.          |
-| **Require current password when updating** | Laisser par défaut (OFF)                        | Idem — aucun mot de passe utilisateur dans le parcours.                                            |
+| Option (panneau Email)                     | Réglage conseillé                               | Pourquoi                                                                                                |
+| ------------------------------------------ | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| **Enable email provider**                  | ✅ **Activé**                                   | C'est le **seul** mode de connexion de l'application.                                                   |
+| **Secure email change**                    | ✅ Activé (valeur par défaut)                   | Sécurité : un changement d'email se confirme sur l'ancienne **et** la nouvelle adresse. Sans impact.    |
+| **Secure password change**                 | Laisser par défaut                              | L'app **n'utilise aucun mot de passe** côté utilisateur : ce réglage est sans effet ici.                |
+| **Require current password when updating** | Laisser par défaut (OFF)                        | Idem — aucun mot de passe utilisateur dans le parcours.                                                 |
 | **Prevent use of leaked passwords**        | ✅ Activer **si disponible**                    | Bonus sécurité, mais **réservé à l'offre Pro**. Sur l'offre gratuite c'est grisé : ignore, sans impact. |
-| **Minimum password length**                | **8**                                           | Défense en profondeur pour un éventuel compte créé avec mot de passe (ex. admin via dashboard).   |
-| **Password requirements**                  | **« Lowercase, uppercase letters and digits »** | Même raison ; coût nul puisque les utilisateurs ne saisissent jamais de mot de passe.             |
-| **Email OTP expiration**                   | **3600** (soit 1 heure)                         | Durée de validité du code reçu par email.                                                          |
-| **Email OTP length**                       | **6**                                           | ⭐ L'application attend un code à **6 chiffres**. **Ne pas changer.**                              |
+| **Minimum password length**                | **8**                                           | Défense en profondeur pour un éventuel compte créé avec mot de passe (ex. admin via dashboard).         |
+| **Password requirements**                  | **« Lowercase, uppercase letters and digits »** | Même raison ; coût nul puisque les utilisateurs ne saisissent jamais de mot de passe.                   |
+| **Email OTP expiration**                   | **3600** (soit 1 heure)                         | Durée de validité du code reçu par email.                                                               |
+| **Email OTP length**                       | **6**                                           | ⭐ L'application attend un code à **6 chiffres**. **Ne pas changer.**                                   |
 
 3. Clique sur **« Save changes »**.
 
@@ -227,7 +227,7 @@ Crée un compte chez l'un d'eux, puis récupère ses **paramètres SMTP** (_Hôt
 
 **b) Brancher le SMTP dans Supabase**
 
-1. Menu **« Project Settings »** → **« Authentication »** → section **« SMTP Settings »** (ou _Authentication → Emails → SMTP_).
+1. Menu **« Project Settings »** → **« Authentication »** → onglet **« SMTP Settings »** (ou _Authentication → Emails → SMTP_).
 2. Active **« Enable Custom SMTP »** et renseigne :
 
 | Champ            | Valeur (exemple Brevo)                                                      |
