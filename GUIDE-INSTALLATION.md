@@ -132,10 +132,12 @@ Ton site a besoin de savoir **où** est ta base et avec **quelle clé** lui parl
 
 | Information         | Où la trouver                                | Exemple                                    |
 | ------------------- | -------------------------------------------- | ------------------------------------------ |
-| **Project URL**     | Champ _Project URL_ / _API URL_              | `https://sjslcrpkjyveyckxippa.supabase.co` |
-| **anon public key** | Section _Project API keys_ → `anon` `public` | une longue chaîne commençant par `eyJ…`    |
+| **Project URL**     | _Integrations → Data API_, champ _API URL_   | `https://sjslcrpkjyveyckxippa.supabase.co` |
+| **anon public key** | _Project Settings → API keys_, onglet **« Legacy anon, service_role API keys »** → clé `anon` `public` | une longue chaîne commençant par `eyJ…`    |
 
 > ⚠️ **Le champ « API URL » peut afficher un suffixe `/rest/v1/`** (ex. `https://xxxx.supabase.co/rest/v1/`). **Supprime `/rest/v1/`** : il te faut uniquement la racine `https://xxxx.supabase.co` (sans `/` à la fin).
+>
+> 💡 **Tu ne vois pas de clé `anon` ?** Dans le tableau de bord récent, va dans **Project Settings → API keys** puis ouvre l'onglet **« Legacy anon, service_role API keys »** : la clé `anon` `public` (format `eyJ…`) s'y trouve. C'est bien celle attendue par l'application.
 
 > ✅ La clé `anon public` est **faite pour être publique** : pas d'inquiétude à l'utiliser sur le site. La sécurité repose sur les règles de la base.
 >
