@@ -1,0 +1,68 @@
+name: Backup database
+
+# Sauvegarde auto-opérée (le plan Supabase Free n'inclut pas de backup managé).
+# Dump complet (schéma + données) de la base via le Session Pooler IPv4,
+# chiffré GPG AES256 et stocké en artifact privé (le repo est public et le
+# dump contient des données personnelles : il ne doit JAMAIS être en clair).
+#
+# Effet de bord utile : ce dump quotidien ouvre une vraie connexion à la base
+# chaque jour, ce qui compte comme une "activité" au sens du plan Supabase Free
+# et évite la mise en pause automatique du projet après une semaine d'inactivité.
+#
+# Secrets requis (Settings → Secrets and variables → Actions) :
+#   SUPABASE_DB_URL        chaîne Session Pooler, ex :
+#     postgresql://postgres.<ref>:<MDP>@aws-1-eu-west-1.pooler.supabase.com:5432/postgres
+#   BACKUP_GPG_PASSPHRASE  passphrase forte (sans elle, le backup échoue : gpg
+#                          refuse une passphrase vide → aucun artifact produit)
+#
+# Voir GUIDE-INSTALLATION.md, Partie 10.
+
+on:
+  schedule:
+    - cron: '0 3 * * *' # 03:00 UTC quotidien
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Horodatage
+        run: echo "STAMP=$(date -u +%Y%m%d_%H%M%S)" >> "$GITHUB_ENV"
+
+      - name: Dump base (schéma + données) via Session Pooler
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          # pg_dump 17 dans Docker (version alignée sur Postgres de Supabase).
+          # L'URL est passée par variable d'environnement dans le conteneur
+          # (jamais sur la ligne de commande) et masquée par GitHub dans les logs.
+          docker run --rm -e SUPABASE_DB_URL postgres:17 \
+            sh -c 'pg_dump "$SUPABASE_DB_URL" --no-owner' \
+            > "backup_${STAMP}.sql"
+          SIZE=$(wc -c < "backup_${STAMP}.sql")
+          echo "Dump brut : backup_${STAMP}.sql (${SIZE} octets)"
+          if [ "$SIZE" -lt 1000 ]; then
+            echo "::error::Dump suspectement petit (${SIZE} octets) — échec probable du pg_dump"
+            exit 1
+          fi
+
+      - name: Chiffrement GPG (AES256)
+        env:
+          BACKUP_GPG_PASSPHRASE: ${{ secrets.BACKUP_GPG_PASSPHRASE }}
+        run: |
+          gpg --batch --yes --symmetric --cipher-algo AES256 \
+            --passphrase "$BACKUP_GPG_PASSPHRASE" \
+            -o "backup_${STAMP}.sql.gpg" "backup_${STAMP}.sql"
+          rm -f "backup_${STAMP}.sql" # ne jamais conserver le clair
+          echo "Chiffré : backup_${STAMP}.sql.gpg ($(wc -c < "backup_${STAMP}.sql.gpg") octets)"
+
+      - name: Upload artifact chiffré
+        uses: actions/upload-artifact@v4
+        with:
+          name: db-backup-${{ env.STAMP }}
+          path: backup_*.sql.gpg
+          retention-days: 30
+          if-no-files-found: error

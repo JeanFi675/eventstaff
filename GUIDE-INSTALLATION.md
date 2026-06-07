@@ -30,6 +30,7 @@ Ce guide t'accompagne **de A à Z** pour mettre en ligne ton propre site de gest
 7. **Première connexion + devenir admin**
 8. **Activer les emails & la création de comptes** — Edge Functions (dans le navigateur)
 9. **Configurer ton événement** depuis l'admin
+10. **(Optionnel mais recommandé)** Activer les **sauvegardes automatiques** de la base
 
 ---
 
@@ -484,6 +485,67 @@ Ton site est prêt à recevoir des inscriptions. 🙌
 
 ---
 
+# Partie 10 — (Optionnel mais recommandé) Sauvegardes automatiques de la base
+
+L'offre **gratuite de Supabase n'inclut aucune sauvegarde automatique** : si tu effaces une donnée par erreur, elle est perdue. Le projet fournit une **tâche planifiée GitHub** (le fichier `.github/workflows/backup.yml`) qui, **chaque nuit**, fait une copie complète de ta base, la **chiffre**, et la range dans un espace privé de ton dépôt.
+
+> 💡 **Double bénéfice — ça garde ton projet en vie.** Sur l'offre gratuite, Supabase **met un projet en pause** après environ **7 jours sans aucune activité**. Comme cette sauvegarde se connecte à ta base **tous les jours**, elle compte comme une activité et **évite cette mise en pause automatique**. (Voir l'encadré ⚠️ en fin de partie pour une limite à connaître.)
+
+Cette sauvegarde a besoin de **deux secrets GitHub** (comme en Partie 6) :
+
+| Name (exactement)       | À quoi ça sert                                                       |
+| ----------------------- | ------------------------------------------------------------------- |
+| `SUPABASE_DB_URL`       | L'adresse de connexion directe à ta base (contient son mot de passe) |
+| `BACKUP_GPG_PASSPHRASE` | Le mot de passe qui **chiffre** chaque sauvegarde                    |
+
+### 10.1 Récupérer l'adresse de connexion (`SUPABASE_DB_URL`)
+
+1. Dans ton projet Supabase, clique sur le bouton **« Connect »** (en haut de la page, près du nom du projet).
+2. Dans la fenêtre qui s'ouvre, repère l'onglet/section **« Session pooler »** _(et non « Direct connection » ni « Transaction pooler »)._
+3. Copie la chaîne affichée. Elle ressemble à :
+
+   ```
+   postgresql://postgres.abcdefgh:[YOUR-PASSWORD]@aws-1-eu-west-1.pooler.supabase.com:5432/postgres
+   ```
+
+4. **Remplace `[YOUR-PASSWORD]`** par le **mot de passe de la base** que tu as noté en **Partie 2.2** (à la création du projet). 👉 La chaîne finale ne doit plus contenir de crochets.
+
+> 💡 **Tu as perdu ce mot de passe ?** Tu peux en générer un nouveau dans **Project Settings → Database → Reset database password**, puis l'utiliser ici.
+
+### 10.2 Choisir le mot de passe de chiffrement (`BACKUP_GPG_PASSPHRASE`)
+
+Invente une **phrase longue et unique** (par ex. 4–5 mots au hasard, ou une phrase de passe). C'est elle qui protège tes sauvegardes.
+
+> 🔐 **Conserve-la en lieu sûr, EN DEHORS de GitHub** (gestionnaire de mots de passe, papier…). **Sans cette phrase, tes sauvegardes sont définitivement illisibles** — personne, pas même toi, ne pourra les restaurer.
+
+### 10.3 Ajouter les deux secrets
+
+Exactement comme en **Partie 6.1** : dépôt GitHub → **Settings** → **Secrets and variables** → **Actions** → **« New repository secret »**. Crée les **deux** secrets ci-dessus (noms **exacts**).
+
+### 10.4 Tester tout de suite (sans attendre la nuit)
+
+1. Onglet **« Actions »** de ton dépôt.
+2. Dans le menu de gauche, clique sur **« Backup database »**.
+3. À droite, bouton **« Run workflow »** → laisse `main` → **« Run workflow »**.
+4. Au bout d'1–2 min, une **coche verte ✅** confirme que la sauvegarde a réussi. En cliquant sur l'exécution, tu verras un fichier téléchargeable **`db-backup-…`** (c'est ta sauvegarde chiffrée). Les sauvegardes sont conservées **30 jours**.
+
+> ❌ **Échec (croix rouge) ?** Le plus souvent : `SUPABASE_DB_URL` mal recopiée (crochets `[ ]` oubliés, mauvais mot de passe) ou `BACKUP_GPG_PASSPHRASE` absente. Corrige le secret et relance.
+
+### 10.5 Restaurer une sauvegarde (le jour où c'est nécessaire)
+
+1. Télécharge le fichier `db-backup-….gpg` depuis l'exécution voulue (onglet **Actions**).
+2. Déchiffre-le sur ton ordinateur (outil **GPG** requis) avec **ta** phrase de passe :
+
+   ```bash
+   gpg --decrypt --output backup.sql backup_XXXXXXXX.sql.gpg
+   ```
+
+3. Réimporte `backup.sql` dans une base Supabase (via un client PostgreSQL comme `psql`). _C'est une opération technique : en cas de doute, fais-toi aider._
+
+> ⚠️ **À savoir (important pour le « garde en vie ») :** GitHub **désactive automatiquement les tâches planifiées d'un dépôt après 60 jours sans aucune modification (commit)**. Si plus personne ne touche au dépôt pendant 60 jours, la sauvegarde nocturne s'arrête — et ton projet Supabase pourrait alors être mis en pause. Pour réactiver : refais un **« Run workflow »** manuel (étape 10.4) ou pousse une petite modification. Pendant la période active de ton événement, tu n'auras aucun souci.
+
+---
+
 # 🆘 Dépannage (FAQ)
 
 **Je ne reçois pas le code par email.**
@@ -532,7 +594,8 @@ Ton site est prêt à recevoir des inscriptions. 🙌
 | Adresse du site (`…github.io/…/`) | Supabase (URL Config) + secret GitHub |
 | Project URL Supabase              | Secret `VITE_SUPABASE_URL`            |
 | Clé `anon public` Supabase        | Secret `VITE_SUPABASE_ANON_KEY`       |
-| Mot de passe base de données      | Connexion directe à la base (rare)    |
+| Mot de passe base de données      | Connexion directe à la base + secret `SUPABASE_DB_URL` (Partie 10) |
 | Identifiants SMTP                 | Envoi des emails (Parties 5.2 et 8)   |
+| Phrase de chiffrement des sauvegardes | Secret `BACKUP_GPG_PASSPHRASE` — **indispensable pour restaurer** (Partie 10) |
 
 Besoin d'aller plus loin sur la technique ? Vois [`README.md`](README.md), [`ARCHITECTURE.md`](ARCHITECTURE.md) et [`DATABASE.md`](DATABASE.md).
