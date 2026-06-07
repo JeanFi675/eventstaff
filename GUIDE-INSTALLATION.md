@@ -2,17 +2,6 @@
 
 Ce guide t'accompagne **de A à Z** pour mettre en ligne ton propre site de gestion de bénévoles, **même si tu n'as jamais touché à du code**. À la fin, tu auras un site web public, ta base de données, et tu seras connecté en **administrateur** prêt à créer ton événement.
 
-> **Pour qui ?** Tu es à l'aise avec un ordinateur et le web, mais tu n'es pas développeur. Suis les étapes **dans l'ordre**, en copiant-collant ce qui est indiqué. Aucune connaissance en programmation n'est nécessaire pour le parcours principal.
-
----
-
-## 🧭 Ce que tu vas obtenir
-
-- Un **site web** en ligne (hébergé gratuitement sur GitHub Pages).
-- Une **base de données** sécurisée (Supabase, offre gratuite).
-- Une **connexion par code à 6 chiffres** envoyé par email (pas de mot de passe à retenir).
-- Un **espace administrateur** pour créer ton événement, tes postes, tes bénévoles.
-
 **Durée estimée :** 45 min à 1 h 30 selon ton aisance.
 
 **Coût :** 0 € (offres gratuites de GitHub et Supabase). Un service d'envoi d'emails gratuit est recommandé (voir Partie 6).
@@ -23,7 +12,7 @@ Ce guide t'accompagne **de A à Z** pour mettre en ligne ton propre site de gest
 
 - Un ordinateur avec un navigateur web (Chrome, Firefox, Edge…).
 - Une **adresse email** valide (ce sera ton compte admin).
-- 1 heure devant toi, au calme.
+- 1 heure devant toi.
 - **(Optionnel, pour les emails)** un compte chez un fournisseur d'envoi d'emails (Brevo, Gmail…). Détaillé en Partie 6.
 
 > 💡 **Garde un bloc-notes ouvert.** Tu vas devoir noter quelques informations au fil de l'eau (clés, mots de passe, adresses). Une petite zone « copier-coller » te fera gagner du temps.
@@ -40,7 +29,7 @@ Ce guide t'accompagne **de A à Z** pour mettre en ligne ton propre site de gest
 6. **Configurer l'envoi d'emails (SMTP)** — pour que les codes partent
 7. **Mettre le site en ligne** — secrets GitHub + activation des Pages
 8. **Première connexion + devenir admin**
-9. *(Avancé, optionnel)* Edge Functions — emails de planning
+9. _(Avancé, optionnel)_ Edge Functions — emails de planning
 10. **Configurer ton événement** depuis l'admin
 
 ---
@@ -111,13 +100,24 @@ Ta base est vide. On va y créer toutes les tables, règles de sécurité et ré
    **`supabase/migrations/00000000000000_init.sql`**
    Clique sur le bouton **« Copy raw file »** (ou sélectionne tout le contenu : `Ctrl/Cmd + A` puis `Ctrl/Cmd + C`).
 4. Reviens dans le **SQL Editor** de Supabase, **colle** tout le contenu (`Ctrl/Cmd + V`).
-5. Clique sur **« Run »** (en bas à droite, ou `Ctrl/Cmd + Entrée`).
+5. Clique bien sur le bouton **vert « Run »** (en bas à droite, ou `Ctrl/Cmd + Entrée`). ⚠️ **N'utilise pas** le bouton/raccourci **« Explain »** : il n'analyse qu'une seule requête et affichera l'erreur _« EXPLAIN only works on a single SQL statement »_.
 
-> ✅ Tu dois voir **« Success. No rows returned »**. C'est normal et c'est **gagné** : toute la structure est en place.
+> ✅ **Résultat attendu — c'est gagné si tu vois l'un de ces deux cas :**
 >
-> ⚠️ Si tu vois une erreur, c'est presque toujours que **tout le contenu n'a pas été collé**. Recommence en sélectionnant bien **l'intégralité** du fichier.
+> - le message **« Success. No rows returned »**, **ou**
+> - un **petit tableau avec une colonne `set_config` et une ligne vide**. C'est tout aussi bon : c'est la sortie normale du préambule du fichier (`SELECT … set_config(…)`). Tant que tu n'as **pas d'erreur rouge**, la structure est en place.
+>
+> ⚠️ Si tu vois une **erreur rouge**, c'est presque toujours que **tout le contenu n'a pas été collé**. Recommence en sélectionnant bien **l'intégralité** du fichier.
 
-Pour vérifier : menu **« Table Editor »** → tu dois voir une liste de tables (`benevoles`, `postes`, `inscriptions`, `config`…).
+Pour **vérifier** que tout est créé, colle cette **seule** requête dans une nouvelle query et clique **Run** :
+
+```sql
+select
+  (select count(*) from information_schema.tables where table_schema = 'public') as nb_tables,
+  (select count(*) from public.config) as nb_cles_config;
+```
+
+Tu dois obtenir un **`nb_tables`** d'une vingtaine et **`nb_cles_config` = 5**. Tu peux aussi ouvrir le menu **« Table Editor »** : la liste des tables doit apparaître (`benevoles`, `postes`, `inscriptions`, `config`…).
 
 ---
 
@@ -128,10 +128,10 @@ Ton site a besoin de savoir **où** est ta base et avec **quelle clé** lui parl
 1. Dans Supabase, menu de gauche → **« Project Settings »** (la roue dentée) → **« API »**.
 2. Repère et 👉 **note ces deux valeurs** :
 
-| Information         | Où la trouver                          | Exemple                                  |
-| ------------------- | -------------------------------------- | ---------------------------------------- |
-| **Project URL**     | Section *Project URL*                  | `https://abcdefgh.supabase.co`           |
-| **anon public key** | Section *Project API keys* → `anon` `public` | une longue chaîne commençant par `eyJ…` |
+| Information         | Où la trouver                                | Exemple                                 |
+| ------------------- | -------------------------------------------- | --------------------------------------- |
+| **Project URL**     | Section _Project URL_                        | `https://abcdefgh.supabase.co`          |
+| **anon public key** | Section _Project API keys_ → `anon` `public` | une longue chaîne commençant par `eyJ…` |
 
 > ✅ La clé `anon public` est **faite pour être publique** : pas d'inquiétude à l'utiliser sur le site. La sécurité repose sur les règles de la base.
 >
@@ -148,13 +148,13 @@ L'application connecte les gens **sans mot de passe** : on saisit son email, on 
 1. Menu **« Authentication »** → **« Sign In / Providers »**.
 2. Vérifie que **« Email »** est **activé (Enabled)**.
 3. Sous Email, règle :
-   - **« Confirm email »** → **désactivé (OFF)**. *(Le code à 6 chiffres prouve déjà que la personne possède l'adresse ; un second email de confirmation casserait le parcours.)*
+   - **« Confirm email »** → **désactivé (OFF)**. _(Le code à 6 chiffres prouve déjà que la personne possède l'adresse ; un second email de confirmation casserait le parcours.)_
    - **« Secure email change »** → tu peux laisser activé.
 4. Laisse tous les autres fournisseurs (Google, Apple, Phone…) **désactivés**.
 
 ### 5.2 Régler le code à 6 chiffres
 
-Toujours dans **Authentication**, cherche les réglages **« Email OTP »** (souvent dans *Providers → Email*, ou *Auth → Settings*) :
+Toujours dans **Authentication**, cherche les réglages **« Email OTP »** (souvent dans _Providers → Email_, ou _Auth → Settings_) :
 
 - **Email OTP Length** → **6**.
 - **Email OTP Expiration** → **3600** secondes (1 heure) convient bien.
@@ -163,19 +163,26 @@ Toujours dans **Authentication**, cherche les réglages **« Email OTP »** (sou
 
 Par défaut, l'email de connexion de Supabase contient **un lien**, mais **pas le code à 6 chiffres**. Comme l'application demande le **code**, il faut modifier le modèle d'email.
 
-1. Menu **« Authentication »** → **« Emails »** (ou *Email Templates*).
-2. Ouvre le modèle **« Magic Link »**. *(C'est bien celui-ci qui est utilisé pour la connexion par code.)*
+1. Menu **« Authentication »** → **« Emails »** (ou _Email Templates_).
+2. Ouvre le modèle **« Magic Link »**. _(C'est bien celui-ci qui est utilisé pour la connexion par code.)_
 3. **Remplace tout son contenu** par ceci :
 
 ```html
 <h2>Votre code de connexion</h2>
 <p>Bonjour,</p>
 <p>Voici votre code de connexion à 6 chiffres :</p>
-<p style="font-size: 32px; font-weight: bold; letter-spacing: 6px; text-align: center; margin: 24px 0;">
+<p
+  style="font-size: 32px; font-weight: bold; letter-spacing: 6px; text-align: center; margin: 24px 0;"
+>
   {{ .Token }}
 </p>
-<p>Saisissez ce code dans l'application pour vous connecter. Il expire dans 1 heure.</p>
-<p style="color:#888; font-size:12px;">Si vous n'êtes pas à l'origine de cette demande, ignorez simplement cet email.</p>
+<p>
+  Saisissez ce code dans l'application pour vous connecter. Il expire dans 1
+  heure.
+</p>
+<p style="color:#888; font-size:12px;">
+  Si vous n'êtes pas à l'origine de cette demande, ignorez simplement cet email.
+</p>
 ```
 
 4. **Enregistre** (Save).
@@ -190,7 +197,7 @@ Par défaut, l'email de connexion de Supabase contient **un lien**, mais **pas l
 3. **Redirect URLs** → clique **« Add URL »** et ajoute ces deux entrées :
    - `https://marie-dupont.github.io/benevoles-festival/**`
    - `https://marie-dupont.github.io/benevoles-festival/index.html`
-   *(remplace par ta vraie adresse)*
+     _(remplace par ta vraie adresse)_
 4. **Enregistre**.
 
 ---
@@ -205,33 +212,33 @@ Pour que les codes à 6 chiffres **partent réellement** vers tes bénévoles, i
 
 Quelques options courantes avec une offre gratuite :
 
-| Fournisseur          | Offre gratuite         | Remarque                                          |
-| -------------------- | ---------------------- | ------------------------------------------------- |
-| **Brevo** (ex-Sendinblue) | ~300 emails/jour   | Simple, recommandé pour débuter                   |
-| **Mailjet**          | ~6 000 emails/mois     | Bonne alternative                                 |
-| **Gmail** (SMTP)     | usage perso limité     | Nécessite un « mot de passe d'application »       |
+| Fournisseur               | Offre gratuite     | Remarque                                    |
+| ------------------------- | ------------------ | ------------------------------------------- |
+| **Brevo** (ex-Sendinblue) | ~300 emails/jour   | Simple, recommandé pour débuter             |
+| **Mailjet**               | ~6 000 emails/mois | Bonne alternative                           |
+| **Gmail** (SMTP)          | usage perso limité | Nécessite un « mot de passe d'application » |
 
-Crée un compte chez l'un d'eux, puis récupère ses **paramètres SMTP** (généralement : *Hôte*, *Port*, *Identifiant*, *Mot de passe / clé SMTP*).
+Crée un compte chez l'un d'eux, puis récupère ses **paramètres SMTP** (généralement : _Hôte_, _Port_, _Identifiant_, _Mot de passe / clé SMTP_).
 
 ### 6.2 Brancher le SMTP dans Supabase
 
-1. Menu **« Project Settings »** → **« Authentication »** → section **« SMTP Settings »** (ou *Authentication → Emails → SMTP*).
+1. Menu **« Project Settings »** → **« Authentication »** → section **« SMTP Settings »** (ou _Authentication → Emails → SMTP_).
 2. Active **« Enable Custom SMTP »** et renseigne :
 
-| Champ                  | Valeur (exemple Brevo)               |
-| ---------------------- | ------------------------------------ |
-| **Host**               | `smtp-relay.brevo.com`               |
-| **Port**               | `587`                                |
-| **Username**           | l'identifiant fourni par le service  |
-| **Password**           | la clé/mot de passe SMTP du service  |
-| **Sender email**       | une adresse **vérifiée** chez le fournisseur (ex. `contact@ton-domaine.fr`) |
-| **Sender name**        | le nom affiché (ex. `Bénévoles Festival`) |
+| Champ            | Valeur (exemple Brevo)                                                      |
+| ---------------- | --------------------------------------------------------------------------- |
+| **Host**         | `smtp-relay.brevo.com`                                                      |
+| **Port**         | `587`                                                                       |
+| **Username**     | l'identifiant fourni par le service                                         |
+| **Password**     | la clé/mot de passe SMTP du service                                         |
+| **Sender email** | une adresse **vérifiée** chez le fournisseur (ex. `contact@ton-domaine.fr`) |
+| **Sender name**  | le nom affiché (ex. `Bénévoles Festival`)                                   |
 
 3. **Enregistre**.
 
 > 💡 **L'adresse expéditrice doit être validée** chez ton fournisseur (vérification par email ou via ton nom de domaine). Sinon les emails seront refusés ou marqués comme spam.
 >
-> 💡 **Augmente la limite d'envoi** : dans *Authentication → Rate Limits*, monte la limite d'emails par heure si tu attends beaucoup d'inscriptions simultanées.
+> 💡 **Augmente la limite d'envoi** : dans _Authentication → Rate Limits_, monte la limite d'emails par heure si tu attends beaucoup d'inscriptions simultanées.
 
 ---
 
@@ -247,11 +254,11 @@ Ce sont des informations privées que GitHub utilise pour construire le site, sa
 2. Menu de gauche → **« Secrets and variables »** → **« Actions »**.
 3. Clique **« New repository secret »** et crée **ces trois secrets**, un par un :
 
-| Name (exactement)         | Secret (valeur)                                              |
-| ------------------------- | ----------------------------------------------------------- |
+| Name (exactement)         | Secret (valeur)                                                   |
+| ------------------------- | ----------------------------------------------------------------- |
 | `VITE_SUPABASE_URL`       | ta **Project URL** (Partie 4), ex. `https://abcdefgh.supabase.co` |
-| `VITE_SUPABASE_ANON_KEY`  | ta clé **anon public** (Partie 4), la longue chaîne `eyJ…`   |
-| `VITE_APP_URL_PRODUCTION` | **l'adresse de ton site** (Partie 1.3)                       |
+| `VITE_SUPABASE_ANON_KEY`  | ta clé **anon public** (Partie 4), la longue chaîne `eyJ…`        |
+| `VITE_APP_URL_PRODUCTION` | **l'adresse de ton site** (Partie 1.3)                            |
 
 > ⚠️ Respecte **exactement** les noms (majuscules, underscores). Une faute de frappe et le site ne saura pas se connecter à la base.
 
@@ -321,9 +328,11 @@ where u.email = 'ton.email@exemple.com';
 3. Tu as désormais accès à l'**espace administrateur**. 🎉
 
 > 💡 **Plus tard, promouvoir quelqu'un d'autre admin** : une fois la personne inscrite, lance dans le SQL Editor :
+>
 > ```sql
 > update public.benevoles set role = 'admin' where email = 'autre@exemple.com';
 > ```
+>
 > Les rôles possibles sont `benevole`, `referent`, `admin`.
 
 ---
@@ -353,7 +362,7 @@ supabase login
 supabase link --project-ref TON-REF-PROJET
 ```
 
-> `TON-REF-PROJET` est l'identifiant de ton projet (visible dans l'URL Supabase et dans *Project Settings → General*).
+> `TON-REF-PROJET` est l'identifiant de ton projet (visible dans l'URL Supabase et dans _Project Settings → General_).
 
 ### 9.3 Déployer les fonctions
 
@@ -388,7 +397,7 @@ supabase secrets list
 
 Tout est en place ! Connecte-toi sur `…/admin.html` et, dans l'espace admin :
 
-1. **Identité de l'événement** (Configuration) : renseigne le **titre** et l'**adresse/lieu**. *(Tant que le titre est vide, le site affiche « Appel aux Bénévoles ».)*
+1. **Identité de l'événement** (Configuration) : renseigne le **titre** et l'**adresse/lieu**. _(Tant que le titre est vide, le site affiche « Appel aux Bénévoles ».)_
 2. Active/désactive selon tes besoins : la **cagnotte**, la **question taille de T-shirt**.
 3. Crée tes **périodes**, **jours**, **postes** (créneaux) et, si besoin, tes **repas**.
 4. Ajoute tes **bénévoles** (ou laisse-les s'inscrire eux-mêmes via la page d'accueil).
@@ -400,28 +409,34 @@ Ton site est prêt à recevoir des inscriptions. 🙌
 # 🆘 Dépannage (FAQ)
 
 **Je ne reçois pas le code par email.**
+
 - Vérifie tes **spams**.
 - La cause la plus fréquente : le **SMTP** (Partie 6) n'est pas activé, ou l'**adresse expéditrice n'est pas validée** chez ton fournisseur.
 - Au tout début, le service intégré de Supabase n'envoie parfois qu'à **ta propre** adresse (celle du compte Supabase) et très peu d'emails/heure : configure le SMTP custom.
 
 **Le code est refusé / « invalide ou expiré ».**
+
 - Le code expire (1 h par défaut) : redemande-en un.
 - Vérifie l'étape **5.3** : le modèle **« Magic Link »** doit contenir `{{ .Token }}`.
 - Sers-toi du **dernier** code reçu (en demander un nouveau invalide les précédents).
 
 **Le site affiche une page blanche ou une erreur 404.**
+
 - Attends 1–2 min après le déploiement, puis recharge.
 - Vérifie que l'adresse finit par `/NOM-DU-DEPOT/`.
 - Vérifie dans l'onglet **Actions** que le dernier déploiement est **vert ✅**.
 
 **Le site se charge mais « impossible de se connecter à la base ».**
+
 - Vérifie les **trois secrets** (Partie 7.1) : noms **exacts** et valeurs correctes (URL + clé `anon`).
 - Après correction d'un secret, **relance** le workflow (Partie 7.3) pour reconstruire le site.
 
 **La requête « devenir admin » affiche « 0 rows ».**
+
 - L'email ne correspond à aucun compte de connexion. Refais l'étape **8.1** avec **la même adresse**, puis relance la requête **8.2**.
 
 **Je me suis trompé dans l'import SQL.**
+
 - Sans incidence si la base est encore vide : tu peux relancer le fichier `00000000000000_init.sql` (il est prévu pour ne pas écraser des réglages déjà saisis). En cas de doute, recrée un projet Supabase propre et recommence la Partie 3.
 
 ---
