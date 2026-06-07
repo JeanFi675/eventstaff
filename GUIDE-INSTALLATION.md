@@ -363,37 +363,45 @@ Ouvre **l'adresse de ton site** dans le navigateur. La page d'accueil de l'appli
 
 Ton site fonctionne, mais **personne n'est encore administrateur**. Voici comment le devenir.
 
-### 7.1 Se connecter une première fois
+### 7.1 Se connecter et créer ton profil
 
 1. Ouvre **l'adresse de ton site**.
 2. Lance la connexion, saisis **ton adresse email**, valide.
-3. Tu reçois un **email avec un code à 6 chiffres** (vérifie les spams au besoin).
-4. Saisis le code dans l'application.
+3. Tu reçois un **email avec un code à 6 chiffres** (vérifie les spams au besoin). Saisis-le dans l'application.
+4. À la première connexion, le site te propose de **créer ton profil** : renseigne **prénom, nom, téléphone** (et taille de T-shirt si la question est activée), puis **valide** le formulaire.
 
-> ✅ Tu es maintenant « connecté », mais comme un visiteur sans profil. Cette étape a créé ton **compte de connexion** dans Supabase. On va maintenant te promouvoir admin.
+> ✅ Ça y est : ton **compte de connexion** **et** ta **fiche bénévole** existent maintenant dans la base. Par défaut ton rôle est `benevole` — on va le passer en `admin` juste après.
 >
 > ⚠️ **Aucun email reçu ?** Le SMTP (Partie 5.2) n'est probablement pas configuré/validé. Voir **Dépannage**.
 
-### 7.2 Te déclarer administrateur (une requête SQL)
+### 7.2 Te déclarer administrateur
 
-1. Retourne dans Supabase → **« SQL Editor »** → **« + New query »**.
-2. Colle la requête ci-dessous **en remplaçant les valeurs** entre guillemets par les tiennes (utilise **la même adresse email** que celle de ta connexion à l'étape 8.1) :
+Le plus simple : changer ton rôle directement dans la base, **sans écrire de requête**.
+
+1. Dans Supabase, menu de gauche → **« Table Editor »**.
+2. En haut de la liste des tables, sélectionne **`benevoles`**.
+3. Repère **ta ligne** (celle qui porte **ton email**).
+4. **Double-clique** sur la cellule de la colonne **`role`** (sa valeur affichée est `benevole`).
+5. Choisis **`admin`** dans la liste déroulante, puis valide (la modification est enregistrée ; clique sur **« Save »** si un bouton apparaît).
+
+> ✅ C'est fait : **tu es administrateur**.
+>
+> 💡 **Tu ne vois pas ta ligne dans `benevoles` ?** C'est que le formulaire de profil de l'étape 7.1 n'a pas été validé. Retourne sur le site, complète et valide ton inscription, puis reviens.
+
+<details>
+<summary><strong>Alternative : par requête SQL</strong> (si tu préfères le SQL)</summary>
+
+Dans **SQL Editor → + New query**, colle ceci en remplaçant par **ton adresse email exacte**, puis clique **Run** :
 
 ```sql
-insert into public.benevoles (email, prenom, nom, telephone, role, user_id)
-select u.email, 'Marie', 'Dupont', 'INCONNU', 'admin', u.id
-from auth.users u
-where u.email = 'ton.email@exemple.com';
+update public.benevoles
+set role = 'admin'
+where email = 'ton.email@exemple.com';
 ```
 
-- Remplace `'Marie'` et `'Dupont'` par ton prénom et ton nom.
-- Remplace `'ton.email@exemple.com'` par **ton adresse email exacte**.
-- Laisse `'INCONNU'` pour le téléphone (tu pourras le compléter plus tard).
-- Laisse `'admin'` tel quel.
+`Success. Rows: 1` = c'est bon. Si tu obtiens **0 ligne**, l'email ne correspond à aucune fiche : termine d'abord ton inscription (étape 7.1) avec **la même adresse**, puis relance.
 
-3. Clique **« Run »**. Tu dois voir **« Success. 1 row affected »** (ou similaire).
-
-> 💡 **Ça affiche « 0 rows » ?** C'est que l'email ne correspond à aucun compte de connexion : refais bien l'étape 8.1 avec **la même adresse**, puis relance la requête.
+</details>
 
 ### 7.3 Profiter de ton accès admin
 
@@ -506,9 +514,9 @@ Ton site est prêt à recevoir des inscriptions. 🙌
 - Vérifie les **trois secrets** (Partie 6.1) : noms **exacts** et valeurs correctes (URL + clé `anon`).
 - Après correction d'un secret, **relance** le workflow (Partie 6.3) pour reconstruire le site.
 
-**La requête « devenir admin » affiche « 0 rows ».**
+**Je ne trouve pas ma ligne dans la table `benevoles` (étape 7.2).**
 
-- L'email ne correspond à aucun compte de connexion. Refais l'étape **8.1** avec **la même adresse**, puis relance la requête **8.2**.
+- C'est que ton **profil n'a pas encore été créé**. Retourne sur le site, connecte-toi et **valide le formulaire d'inscription** (prénom, nom, téléphone) de l'étape **7.1** avec **la même adresse email**, puis reviens dans le Table Editor.
 
 **Je me suis trompé dans l'import SQL.**
 

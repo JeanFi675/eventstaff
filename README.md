@@ -74,13 +74,12 @@ npm run dev        # http://localhost:5173
 
 ### 5. Créer le premier compte admin
 
-Connecte-toi une fois via le code à 6 chiffres (ce qui crée ton compte Auth), puis exécute dans le **SQL Editor** de Supabase :
+Connecte-toi une fois via le code à 6 chiffres **et valide le formulaire de profil** (cela crée ta fiche dans `benevoles` avec le rôle `benevole`). Passe-la ensuite en `admin`, soit via le **Table Editor** (table `benevoles` → ta ligne → colonne `role` → `admin`), soit en SQL :
 
 ```sql
-insert into public.benevoles (email, prenom, nom, telephone, role, user_id)
-select u.email, 'Prénom', 'Nom', 'INCONNU', 'admin', u.id
-from auth.users u
-where u.email = 'ton.email@exemple.com';
+update public.benevoles
+set role = 'admin'
+where email = 'ton.email@exemple.com';
 ```
 
 > 📌 Procédure détaillée (config Auth, modèle d'email avec `{{ .Token }}`, SMTP, secrets) : voir le **[Guide d'installation complet](GUIDE-INSTALLATION.md)**.
