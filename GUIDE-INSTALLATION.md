@@ -253,7 +253,15 @@ Par défaut, l'email de connexion de Supabase contient **un lien**, mais **pas l
 
 1. Menu **« Authentication »** → **« Emails »** (ou _Email Templates_).
 2. Ouvre le modèle **« Magic link or OTP »**. _(C'est bien celui utilisé pour la connexion par code.)_
-3. **Remplace tout son contenu** par ceci :
+3. Renseigne le champ **« Subject »** (le sujet du mail), par exemple :
+
+   ```
+   {{ .Token }} — Votre code de connexion
+   ```
+
+   _(Mettre le code dans le sujet permet à l'utilisateur de le voir directement dans la liste de ses emails, sans même ouvrir le message.)_
+
+4. Dans le champ **« Message »** (le corps du mail), **remplace tout son contenu** par ceci :
 
 ```html
 <h2>Votre code de connexion</h2>
@@ -273,7 +281,7 @@ Par défaut, l'email de connexion de Supabase contient **un lien**, mais **pas l
 </p>
 ```
 
-4. **Enregistre** (Save).
+5. **Enregistre** (Save).
 
 > ⭐ La balise `{{ .Token }}` est **indispensable** : c'est elle qui insère le code à 6 chiffres. Sans elle, personne ne pourra se connecter.
 
