@@ -140,8 +140,8 @@ export function createAdminStore() {
       });
 
       this.benevoles.forEach((b) => {
-        // T-Shirts : les bénévoles sans inscription n'ont pas de T-shirt.
-        const skipTshirt = b.role === 'benevole' && (b.nb_inscriptions || 0) === 0;
+        // T-Shirts : les bénévoles sans inscription n'ont pas de T-shirt, sauf s'ils sont en cagnotte forcée.
+        const skipTshirt = b.role === 'benevole' && (b.nb_inscriptions || 0) === 0 && !b.is_cagnotte_forcee;
         if (!skipTshirt) {
           const size = b.taille_tshirt || 'Non défini';
           tshirts[size] = (tshirts[size] || 0) + 1;

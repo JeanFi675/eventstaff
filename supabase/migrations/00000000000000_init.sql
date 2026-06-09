@@ -386,7 +386,7 @@ BEGIN
         b.nom,
         b.taille_tshirt::text,
         b.has_recupere_tshirt,
-        (SELECT COUNT(*) FROM inscriptions i WHERE i.benevole_id = b.id) > 0
+        ((SELECT COUNT(*) FROM inscriptions i WHERE i.benevole_id = b.id) > 0 OR b.role = 'admin' OR b.is_cagnotte_forcee = true)
     FROM benevoles b
     WHERE b.user_id = target_user_id;
 END;
@@ -421,7 +421,7 @@ BEGIN
         b.nom,
         b.taille_tshirt::text,
         b.has_recupere_tshirt,
-        ((SELECT COUNT(*) FROM inscriptions i WHERE i.benevole_id = b.id) > 0 OR b.role = 'admin')
+        ((SELECT COUNT(*) FROM inscriptions i WHERE i.benevole_id = b.id) > 0 OR b.role = 'admin' OR b.is_cagnotte_forcee = true)
     FROM benevoles b
     WHERE b.user_id = found_user_id;
 END;
@@ -488,15 +488,17 @@ CREATE FUNCTION public.get_public_tshirt_info(target_id uuid) RETURNS TABLE(pren
     AS $$
 DECLARE
     count_regs INTEGER;
+    is_forced BOOLEAN;
+    vol_role public.role_type;
 BEGIN
     SELECT COUNT(*) INTO count_regs FROM inscriptions WHERE benevole_id = target_id;
 
-    SELECT b.prenom, b.nom, b.taille_tshirt::text, b.has_recupere_tshirt
-    INTO prenom, nom, taille_tshirt, has_recupere_tshirt
+    SELECT b.prenom, b.nom, b.taille_tshirt::text, b.has_recupere_tshirt, b.is_cagnotte_forcee, b.role
+    INTO prenom, nom, taille_tshirt, has_recupere_tshirt, is_forced, vol_role
     FROM benevoles b
     WHERE b.id = target_id;
 
-    has_registrations := count_regs > 0;
+    has_registrations := (count_regs > 0 OR vol_role = 'admin' OR is_forced = true);
 
     IF prenom IS NULL THEN
         RETURN;
