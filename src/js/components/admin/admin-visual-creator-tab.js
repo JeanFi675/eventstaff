@@ -1714,13 +1714,43 @@ export function adminVisualCreatorTab() {
         x: event.clientX + 15,
         y: event.clientY + 15,
       };
+
+      this.$nextTick(() => {
+        this.adjustShiftTooltipPosition(event);
+      });
     },
 
     updateShiftTooltip(event) {
       if (this.hoveredShift) {
-        this.hoveredShift.x = event.clientX + 15;
-        this.hoveredShift.y = event.clientY + 15;
+        this.adjustShiftTooltipPosition(event);
       }
+    },
+
+    adjustShiftTooltipPosition(event) {
+      if (!this.hoveredShift) return;
+
+      let x = event.clientX + 15;
+      let y = event.clientY + 15;
+
+      const tooltipEl = document.querySelector('[x-show="hoveredShift"]');
+      if (tooltipEl) {
+        const rect = tooltipEl.getBoundingClientRect();
+        const wWidth = window.innerWidth;
+        const wHeight = window.innerHeight;
+
+        if (x + rect.width > wWidth) {
+          x = event.clientX - rect.width - 15;
+        }
+        if (y + rect.height > wHeight) {
+          y = event.clientY - rect.height - 15;
+        }
+
+        if (x < 10) x = 10;
+        if (y < 10) y = 10;
+      }
+
+      this.hoveredShift.x = x;
+      this.hoveredShift.y = y;
     },
 
     hideShiftTooltip() {

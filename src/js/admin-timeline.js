@@ -327,7 +327,6 @@ export function initAdminTimelineApp() {
     },
 
     showTooltip(poste, event) {
-      const offRight = event.clientX + 300 > window.innerWidth;
       this.tooltip = {
         show: true,
         titre: poste.titre || '',
@@ -338,13 +337,16 @@ export function initAdminTimelineApp() {
         debutStr: poste.debutStr || this.formatTime(new Date(poste.periode_debut).getTime()),
         finStr: poste.finStr || this.formatTime(new Date(poste.periode_fin).getTime()),
         liste_benevoles: poste.liste_benevoles || [],
-        x: offRight ? event.clientX - 300 : event.clientX,
-        y: event.clientY,
+        x: event.clientX + 16,
+        y: event.clientY - 10,
       };
+
+      this.$nextTick(() => {
+        this.adjustTooltipPosition(event);
+      });
     },
 
     showProgramTooltip(ev, event) {
-      const offRight = event.clientX + 300 > window.innerWidth;
       this.tooltip = {
         show: true,
         titre: `Repère #${ev.num || ''}`,
@@ -354,17 +356,46 @@ export function initAdminTimelineApp() {
         inscrits: null,
         debutStr: ev.timeLabel || '',
         finStr: '',
-        x: offRight ? event.clientX - 300 : event.clientX,
-        y: event.clientY,
+        x: event.clientX + 16,
+        y: event.clientY - 10,
       };
+
+      this.$nextTick(() => {
+        this.adjustTooltipPosition(event);
+      });
     },
 
     moveTooltip(event) {
       if (this.tooltip.show) {
-        const offRight = event.clientX + 300 > window.innerWidth;
-        this.tooltip.x = offRight ? event.clientX - 300 : event.clientX;
-        this.tooltip.y = event.clientY;
+        this.adjustTooltipPosition(event);
       }
+    },
+
+    adjustTooltipPosition(event) {
+      if (!this.tooltip.show) return;
+
+      let x = event.clientX + 16;
+      let y = event.clientY - 10;
+
+      const tooltipEl = document.querySelector('[x-show="tooltip.show"]');
+      if (tooltipEl) {
+        const rect = tooltipEl.getBoundingClientRect();
+        const wWidth = window.innerWidth;
+        const wHeight = window.innerHeight;
+
+        if (x + rect.width > wWidth) {
+          x = event.clientX - rect.width - 16;
+        }
+        if (y + rect.height > wHeight) {
+          y = event.clientY - rect.height + 10;
+        }
+
+        if (x < 10) x = 10;
+        if (y < 10) y = 10;
+      }
+
+      this.tooltip.x = x;
+      this.tooltip.y = y;
     },
 
     hideTooltip() {
